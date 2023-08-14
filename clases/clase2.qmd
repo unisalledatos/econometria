@@ -1,0 +1,152 @@
+---
+title: "Clase 2"
+author: "Econometría"
+format: html
+editor: visual
+---
+
+## Instalación de librerías
+
+`intall.packages("wooldridge", "modelsummary")`
+
+## Importación de librerías
+
+```{r, inclue=FALSE}
+library(modelsummary)
+library(wooldridge)
+library(tidyverse)
+library(latex2exp)
+```
+
+## Lectura de los datos
+
+```{r}
+wage <- wage1 |> dplyr::select(c(wage, educ))
+head(wage)
+
+```
+
+## Exploración de los datos
+
+### Descripción estadística
+
+```{r}
+summary(wage)
+```
+
+### Correlación
+
+```{r}
+cor(wage)
+```
+
+```{r}
+cor(wage, method="spearman")
+```
+
+### Exploración gráfica
+
+#### Histogramas
+
+***Wage***
+
+```{r}
+hist(wage$wage)
+```
+
+```{r}
+hist(wage$wage,
+     main="Distribution of wage",
+     xlab="wage", 
+     ylab="count", 
+     col="lightblue", 
+     breaks=30,
+     border="white")
+```
+
+#### Gráfico de barras
+
+***Educ***
+
+```{r}
+educ <- table(wage$educ)
+barplot(educ)
+```
+
+```{r}
+barplot(educ, col="lavender", 
+        border="white",
+        main="Distribution of education",
+        xlab="years of education",
+        ylab="number of people")
+```
+
+#### Diagrama de dispersión
+
+```{r}
+plot(wage$educ, wage$wage)
+```
+
+```{r}
+plot(wage$educ, wage$wage, 
+     col="lightblue",
+     pch=20,
+     main="wage vs.  educ",
+     xlab="Years of education",
+     ylab="Average wage per hour (US dollars)")
+```
+
+## Modelamiento
+
+Función de regresión poblacional (FRP)
+
+$$
+wage=\beta_0 +\beta_1 educ + u
+$$
+
+Tomamos una muestra
+
+$$
+wage_i=\beta_0+\beta_1educ_i+u
+$$
+
+### Ajuste del modelo
+
+```{r}
+reg <- lm(wage ~ educ, data=wage1)
+summary(reg)
+```
+
+### Presentación de resultados
+
+```{r}
+modelsummary(list("RLS"=reg), stars=T, output="kableExtra")
+```
+
+La ecuación del modelo nos quedaría
+
+$$
+\hat{wage}_i=-0.905 + 0.541 educ_i
+$$
+
+$$
+R^2=0.165, n=526
+$$
+
+```{r}
+plot(wage$educ, wage$wage, 
+     pch=20,
+     main="Relationship between wage and education",
+     col="lightblue",
+     xlab="years of education",
+     ylab="average wage per hour (US dollars)")
+
+abline(reg, col="darkblue")
+
+```
+
+¿Cómo interpretar estos coeficientes?
+
+## Taller
+
+1.  Ejercicios C1, C2, C3 y C4 del capitulo 2 del libro "Introductory econometrics: a modern approach" de Jeffrey M. Wooldridge.
