@@ -150,3 +150,4 @@ abline(reg, col="darkblue")
 ## Taller
 
 1.  Ejercicios C1, C2, C3 y C4 del capitulo 2 del libro "Introductory econometrics: a modern approach" de Jeffrey M. Wooldridge.
+[link](https://cloudflare-ipfs.com/ipfs/bafykbzaced2ew3mx75xgr5yzkgiqmzoun2weexemhlqfh2rzyw2grg5da5zu6?filename=Jeffrey%20M.%20Wooldridge%20-%20Introductury%20Econometrics_%20A%20Modern%20Approach-Cengage%20%282018%29.pdf)
