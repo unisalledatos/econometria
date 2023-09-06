@@ -1,0 +1,115 @@
+---
+title: "proyecto_investigacion"
+author: "Carlos Ortiz"
+format: html
+editor: visual
+---
+
+## Partes de la investigación
+
+### Título
+
+-   Que sea creativo
+
+-   Que sea elocuente
+
+-   Despierte interés
+
+### Introducción
+
+Esto se debe escribir de último y se sugiere la siguiente estructura:
+
+-   Problematización del tema que se va a tratar
+
+-   Planteamiento de la pregunta que busca responder en el trabajo
+
+-   Resumen corto de cómo se responderá: datos, problemas de los datos, diseño de identificación, literatura.
+
+-   Estructura del documento.
+
+### Revisión de literatura
+
+Siempre es útil y eficiente trabajar sobre los hombros de quienes ya han trabajado el tema, de esta forma no se comete el error de construir algo ya construido y se avanza en el conocimiento.
+
+-   Búsqueda inicial: wikipedia y Palgrave Dictionary.
+
+-   Journal of Economic Perspectives, Journal of Economic Literature, Journal of Economic Surveys
+
+-   Revisión de bibliografía especializada
+
+El objetivo al revisar la literatura es identificar qué se ha hecho y cómo se ha hecho con respecto al problema que se quiere abordar. Se sugiere un resumen con la siguiente estructura.
+
+-   Paper
+
+-   Pregunta de investigación
+
+-   Variables independientes
+
+-   Diseño de identificación
+
+-   Tipos de datos
+
+-   Modelo
+
+### Exploración de datos
+
+1.  Análisis descriptivo y gráfico univariado
+2.  Análisis descriptivo y gráfico bivariado
+
+### Diseño de identificación y metodología
+
+-   Tenga presentes los pasos para el análisis empírico
+
+    -   Relación causal de interés
+
+    -   Experimento ideal
+
+    -   Diseño de identificación
+
+    -   Inferencia
+
+-   Seleccione un método para aproximarse al experimento ideal
+
+-   Descríbalo suscintamente en esta sección
+
+### Resultados
+
+-   Presente los resultados de su investigación (tabla de regresiones)
+
+-   Describa lo encontrado
+
+### Conclusiones y recomendaciones
+
+-   Resuma lo realizado
+
+-   Concluya sobre los resultados
+
+-   Realice recomendaciones de política a partir de los resultados
+
+### Bibliografía
+
+Esto no hace parte del cuerpo de la investigación (no se cuenta dentro del número de páginas) pero es fundamental incluirlo.
+
+## Temas
+
+1.  Consumo de alcohol. Dataset: `alcohol`.
+2.  Salario y apariencia físifca. Dataset: `beauty`.
+3.  Economía de la salud: pesos de niños al nacer. Dataset: `bwght2`.
+4.  Salario y educación. Dataset: `card`.
+5.  Economía del crimen en Estados Unidos. Dataset: `countymurders`.
+6.  Trabajo y género. Dataset: `cps91`.
+7.  Arrestos. Dataset: `crime1`.
+8.  Criminalidad. Dataset: `discrim`.
+9.  Resultados en matemáticas. Dataset: `econmath`.
+10. Natalidad. Dataset: `fertil1`.
+11. Desempeño en la universidad. Dataset: `gpa1`.
+12. Precio de vivienda. Dataset: `hprice3`.
+13. Ecuaciones de Mincer. Dataset: `wage1`.
+
+## Restricciones
+
+-   Tres páginas (máximo)
+
+-   Normas APA
+
+-   Máximo tres personas
