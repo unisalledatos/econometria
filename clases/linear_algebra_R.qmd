@@ -1,0 +1,348 @@
+---
+title: "Álgebra lineal con R"
+author: "Carlos Ortiz"
+format: html
+editor: visual
+---
+
+## Vectores
+
+### Definición de vectores
+
+**Definición simple**
+
+```{r}
+v1 <- c(3, 2, 1, 4)
+v1
+```
+
+**Definición a partir de un rango**
+
+```{r}
+v2 <- 2:10
+v2
+```
+
+**Definición a partir de una distribución**
+
+```{r}
+v3 <-rnorm(10, 0, 1)
+v3
+```
+
+**Vector de ceros**
+
+```{r}
+v4 <- rep(1, 5)
+v4
+```
+
+**Vector de unos**
+
+```{r}
+v5 <- rep(0, 5)
+v5
+```
+
+### Operaciones
+
+**Suma**
+
+$$
+\begin{bmatrix}
+1 \\
+3 \\
+9
+\end{bmatrix}, \hspace{0.5cm}
+\begin{bmatrix}
+2 \\
+5 \\
+9
+\end{bmatrix}
+$$
+
+```{r}
+v6 <- c(1, 3, 4)
+v7 <- c(2, 5, 9)
+v6 + v7
+```
+
+$$
+\begin{bmatrix}
+1 \\
+3 \\
+9
+\end{bmatrix} + 
+\begin{bmatrix}
+2 \\
+5 \\
+9
+\end{bmatrix} = 
+\begin{bmatrix}
+3 \\
+8 \\
+18
+\end{bmatrix}
+$$
+
+**Resta**
+
+```{r}
+v6 - v7
+```
+
+$$
+\begin{bmatrix}
+1 \\
+3 \\
+9
+\end{bmatrix} - 
+\begin{bmatrix}
+2 \\
+5 \\
+9
+\end{bmatrix} = 
+\begin{bmatrix}
+-1 \\
+-2 \\
+0
+\end{bmatrix}
+$$
+
+**Producto punto**
+
+$$
+\begin{bmatrix}
+1 & 3 & 9
+\end{bmatrix} \cdot 
+\begin{bmatrix}
+2 \\
+5 \\
+9
+\end{bmatrix} = 
+53
+$$
+
+```{r}
+sum(v6 * v7)
+```
+
+**Multiplicación por un escalar**
+
+```{r}
+4 * v6
+```
+
+$$
+4 * \begin{bmatrix}
+1 \\
+3 \\
+9
+\end{bmatrix} = \begin{bmatrix}
+4 \\
+12 \\
+36
+\end{bmatrix} 
+$$
+
+## Matrices
+
+### Definición de matrices
+
+**A partir de vectores**
+
+```{r}
+v1 <- c(1, 3, 5)
+v2 <- c(8, 10, 1)
+matrix(c(v1, v2))
+```
+
+```{r}
+matrix(rbind(v1, v2), nrow=3)
+```
+
+```{r}
+m1 = matrix(c(v1, v2), ncol=2)
+m1
+```
+
+**A partir de una diagonal**
+
+```{r}
+diag(v1)
+```
+
+**Traspuesta de una matriz**
+
+```{r}
+t(m1)
+```
+
+### Operaciones de matrices
+
+**Suma de matrices**
+
+$$
+A = 
+\begin{bmatrix}
+3 & 4 \\
+1 & 9
+\end{bmatrix}, \hspace{0.5cm}
+B = 
+\begin{bmatrix}
+9 & 4 \\
+2 & 1
+\end{bmatrix}
+$$
+
+```{r}
+A <- matrix(rbind(c(3, 4), 
+                  c(1, 9)), nrow = 2)
+B <- matrix(rbind(c(9, 4), 
+                  c(2, 1)), nrow = 2)
+
+A + B
+```
+
+**Resta de matrices**
+
+```{r}
+A - B
+```
+
+**Multiplicación de matrices**
+
+```{r}
+A %*% B
+```
+
+**Matriz identidad**
+
+```{r}
+diag(1, nrow=4)
+```
+
+**Inversa de una matrix**
+
+```{r}
+solve(A)
+```
+
+```{r}
+A %*% solve(A)
+```
+
+**Determinante de una matriz**
+
+```{r}
+det(A)
+```
+
+**Traza de una matriz**
+
+```{r}
+sum(diag(A))
+```
+
+**Diagonal de una matriz**
+
+```{r}
+diag(A)
+```
+
+## Mínimos cuadrados ordinarios
+
+### Obtener el estimador
+
+```{r}
+x <- runif(100, -10, 5)
+u <- rnorm(100, 0, 1)
+y <- 4 + 3 * x + u
+```
+
+$$
+y = 4 + 3x+u
+$$
+
+```{r}
+#vector de unos
+ones <- rep(1, 100)
+X <- matrix(c(ones, x), ncol = 2)
+betas <- solve(t(X) %*% X) %*% t(X) %*% y
+betas
+```
+
+$$
+\hat{y}_i=3.85+2.98x_i
+$$
+
+## Tabla de resultados
+
+### Betas
+
+```{r}
+betas
+```
+
+### Errores estándar
+
+$$
+Var(\vec{\beta})=\sigma^2(X^TX)^{-1}
+$$ $$
+\hat{\sigma}^2=\frac{\hat{u}^T\hat{u}}{n-k-1}
+$$
+
+```{r}
+y_est <- X %*% betas
+u_est <- y - y_est
+n <- dim(X)[1]
+k <- dim(X)[2]
+sigma_2 <- ((t(u_est) %*% u_est) / (n - k))[1]
+sigma_2
+```
+
+```{r}
+var_betas <- sigma_2 * solve((t(X) %*% X))
+var_betas
+```
+
+$$
+ee_{\hat{\vec{\beta}}} = \sqrt{diag(Var(\vec{\beta})}
+$$
+
+```{r}
+ee_betas <- t(t(sqrt(diag(var_betas))))
+ee_betas
+```
+
+### Estadístico t
+
+```{r}
+t_stat <- betas / ee_betas
+t_stat
+```
+
+### P-valor
+
+```{r}
+p_values <- 2 * (1 - pt(abs(t_stat), n - k))
+```
+
+### Intervalos de confianza
+
+```{r}
+alpha <- 0.05
+c <- qt(1 - alpha/2, df=n-k)
+lim_inf <- betas - c * ee_betas    
+lim_sup <- betas + c * ee_betas
+```
+
+### Crear una matriz con los resultados
+
+```{r}
+m <- matrix(c(betas, ee_betas, t_stat, p_values, lim_inf, lim_sup), ncol = 6)
+colnames(m) <- c('betas', 'ee_betas', 't_stat', 'p_values', 'lim_inf', 'lim_sup')
+rownames(m) <- c('intercept', 'x')
+m <- round(m, digits = 3)
+m
+```

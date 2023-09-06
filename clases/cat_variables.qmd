@@ -1,0 +1,180 @@
+---
+title: "Transformación de variables y variables categóricas"
+author: "Carlos Ortiz"
+format: html
+editor: visual
+---
+
+## Transformación de variables
+
+### 
+
+```{r}
+library(wooldridge)
+library(tidyverse)
+library(modelsummary)
+library(fastDummies)
+library(knitr)
+```
+
+```{r}
+head(bwght)
+```
+
+### Transformación de la variable dependiente
+
+```{r}
+reg1 <- lm(bwght ~ faminc + cigs, data=bwght)
+summary(reg1)
+```
+
+Si se multiplica a la variable dependiente por una constante, todos los coeficientes se multiplican por esa constante.
+
+```{r}
+bwght <- bwght |>
+  mutate(new_bwght=bwght/16)
+
+reg2 <- lm(new_bwght ~ faminc + cigs, data=bwght)
+summary(reg2)
+```
+
+### Transformación de una variable independiente
+
+```{r}
+summary(reg1)
+```
+
+Si se multplica una variable por una constante, el coeficiente se dividirá por esa constante.
+
+```{r}
+bwght <- bwght |>
+  mutate(packs=cigs/20)
+
+reg3 <- lm(bwght ~ faminc + packs, data=bwght)
+summary(reg3)
+```
+
+### Estandarización
+
+No es posible comparar las magnitudes de los coeficientes del modelo de regresión lineal para variables que tienen unidades de medida diferentes. Incluso, con unidades de medida iguales, en ocasiones tampoco se puede hacer la comparación.
+
+```{r}
+summary(reg1)
+```
+
+Para poder hacerlo, podemos estandarizar a las variables
+
+```{r}
+summary(bwght$faminc)
+```
+
+```{r}
+summary(bwght$cigs)
+```
+
+```{r}
+summary(bwght$bwght)
+```
+
+```{r}
+bwght <- bwght |>
+  mutate(bwght_sd=(bwght - mean(bwght))/sd(bwght),
+         faminc_sd=(faminc - mean(faminc))/sd(faminc),
+         cigs_sd=(cigs - mean(cigs))/sd(cigs))
+
+reg4 <- lm(bwght_sd ~ faminc_sd + cigs_sd, data=bwght)
+summary(reg4)
+```
+
+### Resumen
+
+```{r}
+modelos <- list(
+  "no_mod"=reg1,
+  "var_dep"=reg2,
+  "var_ind"=reg3,
+  "standard"=reg4
+)
+modelsummary(modelos)
+```
+
+## Variables categóricas
+
+### Generar variables dummy
+
+```{r}
+gender <- c("male", "female")
+df <- data.frame(numbers = rnorm(100, 0, 1),
+                  gender  = sample(gender, 100, replace=TRUE),
+                  stringsAsFactors = FALSE)
+knitr::kable(head(df))
+```
+
+```{r}
+results <- fastDummies::dummy_cols(df)
+knitr::kable(head(results))
+```
+
+```{r}
+results <-fastDummies::dummy_cols(df, select_columns = "gender")
+knitr::kable(head(results))
+```
+
+```{r}
+results <- fastDummies::dummy_cols(df, remove_first_dummy = TRUE)
+knitr::kable(head(results))
+```
+
+### Modelando con una variable dummy
+
+```{r}
+reg1 <- lm(wage ~ female, data=wage1)
+summary(reg1)
+```
+
+```{r}
+reg2 <- lm(wage ~ female + educ, data=wage1)
+summary(reg2)
+```
+
+```{r}
+wage1 |>
+  group_by(female) |>
+  summarise(mean=mean(wage), n=n())
+  
+```
+
+### Modelando con varias variables dummy
+
+```{r}
+
+salario <- matrix(rbind(lasalle <- rnorm(70, 100, 35),
+externado <- rnorm(40, 145, 32),
+rosario <- rnorm(45, 140, 45),
+santoto <- rnorm(65, 100, 40)))
+
+universidad <-matrix(rbind(rep("lasalle",70),
+rep("externado",40),
+rep("rosario",45),
+rep("santoto",65)))
+
+data <- data.frame(universidad = universidad,
+           salario = salario, stringsAsFactors = FALSE)
+
+knitr::kable(head(data))
+
+
+```
+
+```{r}
+results <- fastDummies::dummy_cols(data, remove_most_frequent_dummy = TRUE)
+knitr::kable(head(results))
+```
+
+```{r}
+reg <- lm(salario ~ universidad_lasalle +
+            universidad_rosario + 
+            universidad_santoto, data=results)
+
+summary(reg)
+```
