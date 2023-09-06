@@ -1,0 +1,66 @@
+---
+title: "Functional forms"
+author: "Carlos Ortiz"
+format: html
+editor: visual
+---
+
+## Modelos con logaritmos
+
+```{r}
+library(wooldridge)
+library(tidyverse)
+library(modelsummary)
+```
+
+### Lin-lin
+
+```{r}
+reg <- lm(wage ~ educ, data=wage1)
+summary(reg)
+```
+
+### Log-lin
+
+```{r}
+
+reg <- lm(lwage ~ educ, data=wage1)
+summary(reg)
+```
+
+### Lin-log
+
+```{r}
+wage2 <- wage1 |>
+   filter(educ > 0) |>
+  mutate(leduc=log(educ))
+
+
+reg <- lm(wage ~ leduc, data=wage2)
+summary(reg)
+
+```
+
+### Log-log
+
+```{r}
+reg <- lm(lwage ~ leduc, data=wage2)
+summary(reg)
+```
+
+## Modelos con funciones cuadráticas
+
+```{r}
+reg1 <- lm(wage ~ exper, data=wage1)
+reg2 <- lm(wage ~ expersq, data=wage1)
+
+models <- list("lin" = reg1,
+               "sqrd" = reg2)
+modelsummary(models)
+```
+
+## 
+
+## 
+
+## 
