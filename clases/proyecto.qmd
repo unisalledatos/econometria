@@ -99,7 +99,7 @@ Esto no hace parte del cuerpo de la investigación (no se cuenta dentro del núm
 5.  Economía del crimen en Estados Unidos. Dataset: `countymurders`.
 6.  Trabajo y género. Dataset: `cps91`.
 7.  Arrestos. Dataset: `crime1`.
-8.  Criminalidad. Dataset: `discrim`.
+8.  Criminalidad. Dataset: `crime4`.
 9.  Resultados en matemáticas. Dataset: `econmath`.
 10. Natalidad. Dataset: `fertil1`.
 11. Desempeño en la universidad. Dataset: `gpa1`.
