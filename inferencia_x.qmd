@@ -1,0 +1,217 @@
+---
+title: "Inferencia"
+format: html
+editor: visual
+---
+
+```{r}
+library(wooldridge)
+library(tidyverse)
+library(modelsummary)
+library(car)
+```
+
+$$
+wage_i = \beta_0 + \beta_1educ_i + \beta_2exper_i + \beta_3 expersq_i +\beta_4 female + u_i
+$$
+
+```{r}
+reg <- lm(wage ~ educ + exper + expersq + female, data=wage1)
+summary(reg)
+```
+
+¿Cómo se calculan los errores estándar? ¿Qué puede afectar los errores estándar?
+
+## Calculando la varianza de los estimadores
+
+$$
+Var(\hat{\beta}_j)=\frac{\sigma^2}{\sum_{i=1}^n (x_{ij}-\bar{x}_j)^2(1-R^2_j)}
+$$
+
+Utilizamos tres componentes para calcular la varianza del estimador $\hat{\beta}_j$.
+
+1.  $\sigma^2$ , la varianza de los errores. Esta puede reducirse entre más variables se agreguen al modelo porque básicamente extraemos información del componente del error. Puede estimarse a través de la siguiente fórmula
+
+    $$
+    \hat{\sigma}^2=\frac{\sum_{i=1}^n \hat{u}_i^2}{n-k-1}
+    $$
+
+2.  $\sum_{i=1}^n (x_{ij}-\bar{x}_j)^2$ , varianza de la variable independiente.
+
+3.  $R^2_j$ , porcentaje de la variación muestral de la variable independiente $x_j$ explicada por el resto de variables independientes. No es el mismo coeficiente que hemos calculado anteriormente. Este puede incrementarse entre más relación tengan las variables entre sí.
+
+Para hacer inferencia a partir de los estimadores y los errores estándar, se cálcula el estadístico $t$. Bajo los supuestos del modelo clásico, el estadístico $t$ sigue una distribución $t_{n-k-1}$. Estos supuestos son:
+
+-   Linealidad en los parámetros
+
+-   Muestreo aleatorio
+
+-   Rango completo o no colinealidad perfecta
+
+-   Media condicional cero
+
+-   Homocedasticidad y no autocorrelación
+
+-   Normalidad de los errores
+
+Ejercicio: ¿Cuáles de los siguientes puede causar que el estadístico $t$ de MCO sea inválido (es decir que no siga una distribución $t$)?
+
+1.  Heterocedasticidad
+2.  Una correlación muestral de 0.95 entre dos variables independientes que están en el modelo.
+3.  Omitir una variable explicatoria importante.
+
+## Pruebas t
+
+$$
+H_0:\beta_j=0
+$$
+
+### Prueba a dos colas
+
+$$
+H_1:\beta_k\neq 0
+$$
+
+### Prueba una cola
+
+##### Mayor que
+
+$$
+H_1:\beta_j>0
+$$
+
+##### Menor que
+
+$$
+H_1:\beta_j<0
+$$
+
+### Prueba con una constante diferente de cero
+
+$$
+H_0:\beta_j=a_j
+$$
+
+$$
+H_1:\beta_j\neq a_j
+$$
+
+Calcular el estadístico t
+
+$$
+T = \frac{\hat{\beta}_j-a_j}{se_{\hat{\beta}_j}}
+$$
+
+Calcular p-valor o comparar con el valor crítico $t_{n-k-1}$ dependiendo de la hipótesis alternativa y del nivel de significancia.
+
+## Pruebas F
+
+### Prueba de signficancia conjunta
+
+Importemos unos nuevos datos y corramos una nueva regresión para el modelo
+
+$$
+log(salary)=\beta_0+\beta_1years+\beta_2gamesyr+\beta_3vag+\beta_4hrunsyr+\beta_5rbisyr+u
+$$
+
+```{r}
+reg <- lm(lsalary ~ years + gamesyr + bavg + hrunsyr + rbisyr, data=mlb1)
+summary(reg)
+```
+
+Vamos a probar
+
+$$
+H_0:\beta_3=\beta_4=\beta_5=0
+$$
+
+Contra la hipótesis
+
+$$
+H_1: H_0 \text{ no es cierta}
+$$
+
+¿Cómo hacerlo?
+
+1.  Correr el primer modelo (no restringido) y guardar el $R^2$.
+
+2.  Correr el segundo modelo (restringido) sin las variables indicadas más arriba y guardar el $R^2$.
+
+3.  Construir el estadístico $F$.
+
+    $$
+    F=\frac{(R^2_{nr}-R^2_{r})/q}{(1-R^2_{nr})/(n-k-1)}=\frac{(R^2_{nr}-R^2_{r})/q}{(1-R^2_{nr})/df_{nr}}
+    $$
+
+    $$
+    q=df_{r}-df_{ur}
+    $$
+
+    $$
+    F\sim F_{q,n-k-1}
+    $$
+
+4.  Comparar el estadístico calculado con el valor crítico de la distribución $F$. Si es mayor, se rechaza la hipótesis nula y se dice que las variables son en conjunto estadísticamente significativas.
+
+#### Ejemplo
+
+```{r}
+reg1 <- lm(lsalary ~ years + gamesyr + bavg + hrunsyr + rbisyr, data=mlb1)
+reg2 <- lm(lsalary ~ years + gamesyr + bavg + hrunsyr, data=mlb1)
+reg3 <- lm(lsalary ~ years + gamesyr + bavg + hrunsyr + bavg + fldperc + sbasesyr, data=mlb1)
+models <- list('model_1'=reg1,
+               'model_2'=reg2,
+               'model_3'=reg3)
+
+modelsummary(models, stars = TRUE)
+```
+
+##### Prueba F
+
+```{r}
+linearHypothesis(reg3, c("bavg=0", "fldperc=0", "sbasesyr=0"))
+```
+
+### Prueba conjunta del modelo
+
+Se puede construir también un estadístico $F$ para verificar la significancia conjunta del modelo. Suponga que se tiene el modelo
+
+$$
+y=\beta_0+\beta_1x_1+...+\beta_kx_k+u
+$$
+
+La prueba de hipótesis sería
+
+$$
+H_0:\beta_1=\beta_2=...=\beta_k=0
+$$
+
+$$
+H_1: H_0 \text{ no es cierta}
+$$
+
+El modelo restringido sería
+
+$$
+y=\beta_0+u
+$$
+
+En este caso se construye el estadístico $F$ de la siguiente manera
+
+$$
+F=\frac{R^2/k}{(1-R^2)/(n-k-1))}
+$$
+
+$$
+F \sim F_{k, n-k-1}
+$$
+
+Se compara el estadístico $F$ con el valor crítico de la distribución y se concluye
+
+## $R^2$ ajustado
+
+Sucede que una medida de bondad de ajuste como el $R^2$ no es muy confiable ya que podemos incrementar su valor únicamente añadiendo variables, sin importar si estas son o no son relevantes. El $R^2$ ajustado toma en cuenta la información que aporta realmente una nueva variable.
+
+$$
+\bar{R}^2=1-\frac{\hat{\sigma}^2}{SST/(n-1)}
+$$
