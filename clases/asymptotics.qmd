@@ -1,0 +1,271 @@
+---
+title: "Análisis asintótico"
+author: "Carlos Ortiz"
+format: html
+editor: visual
+---
+
+> "If you can't get it right as $n$ goes to infinity, you shouldn't be in this business"
+
+```{r}
+library(wooldridge)
+library(modelsummary)
+```
+
+## Consistencia de MCO
+
+> Bajo los supuestos
+>
+> -   Linealidad en los parámetros
+>
+> -   Muestreo aleatorio
+>
+> -   Rango completo
+>
+> -   Media condicional cero
+>
+> el estimador $\hat{\beta}_j$ es consistente para $\beta_j$ para todo $j=0,1,…k$.
+
+Para cada $n$, $\hat{\beta}_j$ tiene una distribución de probabilidad (esta representa los posibles valores del estimador in diferentes muestras aleatorias de tamaño $n$). Dado que $\hat{\beta}_j$ es insesgado bajo los cuatro supuestos anteriormente mencionados, esta distribución tiene como media a $\beta_j$. Si este estimador es consistente, entonces a medida que el tamaño de la muestra crece, la distribución se hace cada vez más estrecha. Cuando $n$ tiende a infinito, la distribución de $\hat{\beta}_j$ colapsa al punto único $\beta_j$.
+
+```{r}
+
+x <- runif(10000, -5, 10)
+e <- rnorm(10000, 0, 1)
+y <- 4 + 3 * x + e
+
+data <- matrix(c(y, x), ncol = 2)
+
+n1 <- c() 
+for (i in 1:1000){
+  muestra <- data[sample(1:dim(data)[1], 100), ]
+  colnames(muestra) <- c('y', 'x')
+  reg <- lm(muestra[, "y"] ~ muestra[, "x"], )
+  n1 <- c(summary(reg)$coef["muestra[, \"x\"]", "Estimate"], n1)
+}
+
+n2 <- c()
+
+for (i in 1:1000){
+  muestra <- data[sample(1:dim(data)[1], 500), ]
+  colnames(muestra) <- c('y', 'x')
+  reg <- lm(muestra[, "y"] ~ muestra[, "x"])
+  n2 <- c(summary(reg)$coef["muestra[, \"x\"]", "Estimate"], n2)
+}
+n3 <- c() 
+
+for (i in 1:1000){
+  muestra <- data[sample(1:dim(data)[1], 1000), ]
+  colnames(muestra) <- c('y', 'x')
+  reg <- lm(muestra[, "y"] ~ muestra[, "x"])
+  n3 <- c(summary(reg)$coef["muestra[, \"x\"]", "Estimate"], n3)
+}
+n4 <- c() 
+
+for (i in 1:1000){
+  muestra <- data[sample(1:dim(data)[1], 2500), ]
+  colnames(muestra) <- c('y', 'x')
+  reg <- lm(muestra[, "y"] ~ muestra[, "x"])
+  n4 <- c(summary(reg)$coef["muestra[, \"x\"]", "Estimate"], n4)
+}
+n5 <- c() 
+
+for (i in 1:1000){
+  muestra <- data[sample(1:dim(data)[1], 5000), ]
+  colnames(muestra) <- c('y', 'x')
+  reg <- lm(muestra[, "y"] ~ muestra[, "x"])
+  n5 <- c(summary(reg)$coef["muestra[, \"x\"]", "Estimate"], n5)
+}
+plot(density(n1), lty=1, ylim=c(0,200), xlim=c(2.9,3.1),main='Asymptotics', xlab="")
+lines(density(n2), lty=2, ylim=c(0, 200), xlim=c(2.9,3.1))
+lines(density(n3), lty=3, ylim=c(0, 200), xlim=c(2.9,3.1))
+lines(density(n4), lty=4, ylim=c(0,200), xlim=c(2.9,3.1))
+lines(density(n5), lty=5, ylim=c(0,200), xlim=c(2.9,3.1))
+legend(x='topright',
+       legend=c('100', '500', '1000', '2500', '5000'),
+       lty=c(1,2,3,4,5))
+```
+
+#### Una pequeña prueba
+
+Para regresión lineal simple
+
+$$
+y_i=\beta_0+\beta_1x_{i1}+u_i
+$$
+
+$$
+\hat{\beta}_1=\frac{\sum_{i=1}^n(x_{i1}-\bar{x})y_i}{\sum_{i=1}^n(x_{i1}-\bar{x})^2}
+$$
+
+$$
+=\beta_1+\frac{n^{-1}\sum_{i=1}^n(x_{i1}-\bar{x})u_i}{n^{-1}\sum_{i=1}^n(x_{i1}-\bar{x})^2}
+$$
+
+Cuando aplicamos la ley de los grandes números a los promedios en el segundo término, el numerador y el denominado convergen probabilidad a las cantidades poblacionales
+
+$$
+\text{plim }\hat{\beta}_1=\beta_1+Cov(x_1,u)/Var(x1)
+$$
+
+Dado que, por el supuesto de media condicional cero, $Cov(x_1,u)$.
+
+$$
+\text{plim }\hat{\beta}_1=\beta_1
+$$
+
+## Sesgo asintótico
+
+Así como la violación del supuesto de exogeneidad provoca que el estimador de MCO sea insesgado, la correlación entre el error y cualquiera de las variables independientes provoca que el estimador de MCO sea inconsistente. Suponga que se tiene el modelo
+
+$$
+wage=\beta_0+\beta_1educ+\beta_2abil+u
+$$
+
+dado que habilidad no es observada, se estima el modelo
+
+$$
+wage=\beta_0+\beta_1educ+v
+$$
+
+donde $v=\beta_2abil+u$. El estimador de $\beta_1$ en este caso será $\tilde{\beta_1}$. Si se tiene que al regresar $abil$ en $educ$ la pendiente es $\tilde{\delta}_1$. Se obtiene el valor esperado de $\tilde{\beta}_1$ y se tiene
+
+$$
+E(\tilde{\beta_1})=E(\hat{\beta}_1+\hat{\beta}_2\tilde{\delta}_1)=E(\hat{\beta}_1)+E(\hat{\beta}_2)\tilde{\delta}_1\\
+E(\tilde{\beta_1})=\beta_1+\beta_2\tilde{\delta}_1
+$$
+
+El sesgo de $\tilde{\beta}_1$ sería
+
+$$
+Bias(\tilde{\beta_1})=E(\tilde{\beta_1})-\beta_1=\beta_2\tilde{\delta}_1
+$$
+
+Esto se conoce como el sesgo de variable omitida. Ahora, veamos cómo se genera un sesgo asintótico en la misma situación
+
+$$
+\text{plim }\hat{\beta}_1-\beta_1=Cov(x_1,u)/Var(x_1)
+$$
+
+Siguiendo el mismo ejemplo de arriba
+
+$$
+\text{plim }\tilde{\beta}_1=\beta_1 + \beta_2\delta_1
+$$
+
+La magnitud del sesgo no se puede identificar ya que $u$ no es observable.
+
+## Inferencia
+
+Con esta nueva batería de información se puede hacer hincapié en algunos elementos. Bajo los supuestos del teorema de Gauss Markov, se puede decir que
+
+-   $\hat{\beta}_j$ está asintóticamente normalmente distribuido
+
+-   $\hat{\sigma}^2$ es un estimador consistente de $\sigma^2$
+
+-   Para todo $j$
+
+    $$
+    (\hat{\beta}_j-\beta_j)/sd(\hat{\beta}_j)\stackrel{a}{\sim}Normal(0,1)
+    $$
+
+    $$
+    (\hat{\beta}_j-\beta_j)/se(\hat{\beta}_j)\stackrel{a}{\sim}Normal(0,1)
+    $$
+
+### Convergencia de la estimación de la varianza del estimador
+
+Con esto en mente, se puede analizar la inferencia cuando $n$ tiende a infinito. Recuerde la ecuación
+
+$$
+Var(\hat{\beta}_j)=\frac{\hat{\sigma}^2}{SST_j(1-R^2_J)}
+$$
+
+Cuando $n$ tiende a infinito, cada elemento de la ecuación convergerá al valor poblacional
+
+$$
+c_j^2=\frac{\sigma^2}{\sigma^2_j(1-\rho_j^2)}
+$$
+
+De esta forma el error estándar puede ser expresado como
+
+$$
+se(\hat{\beta}_j)\approx c_j/\sqrt{n}
+$$
+
+La normalidad asintótica en este caso implicia también que el estadístico $F$ tiene distribución $F$ in muestras grandes.
+
+### Un nuevo estadístico: multiplicador de lagrange para restricciones de exclusión
+
+Una vez caemos en el campo de lo asintótico, surgen nuevos estadísticos para hacer inferencia. Es el caso del estadístico LM o multiplicador de Lagrange. Este se puede utilizar para probar también las restricciones de exclusión. Tome el modelo estándar
+
+$$
+y=\beta_0+\beta_1x_1+...+\beta_kx_k+u
+$$
+
+El objetivo sería probar si las últimas $q$ variables tienen parámetros poblacionales iguales a 0. La hipótesis nula sería
+
+$$
+H_0:\beta_{k-q+1}=0,...,\beta_k=0
+$$ Para ello, se puede calcular el estadístico $LM$ siguiendo estos pasos
+
+1.  Realizar una regresión de $y$ sobre el conjunto de variables independientes y guardar los residuos $\tilde{u}$.
+2.  Realizar una regresión de los residuos $\tilde{u}$ sobre las variables independientes y obtener el $R^2_{\tilde{u}}$.
+3.  Calcular $LM=nR^2_{\tilde{u}}$ .
+4.  Comparar el estadístico $LM$ con el valor crítico $c$ in una distribución $\chi^2_q$. Si $LM>c$, se rechaza la hipótesis nula. También se puede obtener el p-valor.
+
+#### Ejemplo:
+
+Con la variable independiente $narr86$ siendo número de veces que una persona fue arrestada, se tiene el modelo
+
+$$
+narr86=\beta_0+\beta_1pcnv+\beta_2avgsen+\beta_3tottime+\beta_4ptime86+\beta_5qemp86+u
+$$
+
+En este caso las variables independientes son proporción de arrestos que llevaron a que fuera encerrado, sentencia promedio de encierros anteriores, tiempo total que el individuo pasó en la cárcel antes de 1986, meses en prisión en 1986, número de trimestres en 1986 durante los cuales estuvo empleado legalmente, respectivamente.
+
+```{r}
+reg <- lm(narr86 ~ pcnv + avgsen + tottime + ptime86 + qemp86, data=crime1)
+summary(reg)
+```
+
+Vamos a probar si las variables $avgsen$ y $tottime$ tienen efecto conjunto sobre $narr86$.
+
+1.  Realizar una regresión de $y$ sobre el conjunto de variables independientes y guardar los residuos $\tilde{u}$.
+
+```{r}
+reg_r <- lm(narr86 ~ pcnv + ptime86 + qemp86, data=crime1)
+```
+
+2.  Realizar una regresión de los residuos $\tilde{u}$ sobre las variables independientes y obtener el $R^2_{\tilde{u}}$.
+
+```{r}
+reg_u <- lm(reg_r$resid ~ pcnv + avgsen + tottime + ptime86 + qemp86, data=crime1)
+```
+
+3.  Calcular $LM=nR^2_{\tilde{u}}$ .
+
+```{r}
+n <- dim(crime1)[1]  
+r2_u <- summary(reg_u)$r.squared
+LM <- n*r2_u
+LM
+```
+
+4.  Comparar el estadístico $LM$ con el valor crítico $c$ in una distribución $\chi^2_q$. Si $LM>c$, se rechaza la hipótesis nula. También se puede obtener el p-valor.
+
+```{r}
+qchisq(0.95, 2) #al 5% con dos grados de libertad (número de restricciones)
+```
+
+$$
+4.07< 5.991465
+$$
+
+No hay evidencia suficiente para rechazar la hipótesis nula
+
+```{r}
+1 - pchisq(LM, 2) #p-valor
+```
+
+El p-valor está por encima del nivel de significancia.
