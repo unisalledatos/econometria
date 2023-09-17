@@ -1,0 +1,480 @@
+---
+title: "Heterocedasticidad"
+author: "Carlos Ortiz"
+format: html
+editor: visual
+---
+
+El supuesto de homocedasticidad falla cuando la varianza de los factores no observados cambia en diferentes segmentos de la población, donde los segmentos están determinados por los diferentes valores de las variables explicativas. La homocedasticidad es necesaria para la inferencia. Con homocedasticidad
+
+$$
+Var(u|\textbf{x})=\sigma^2I_n
+$$
+
+Con heterocedasticidad
+
+$$
+Var(u|\textbf{x})\neq\sigma^2I_n
+$$
+
+## Consecuencias de la heterocedasticidad
+
+No afecta el sesgo ni a la inconsistencia de los estimadores de MCO. Así mismo, la interpretación de las medidas de bondad de ajuste tampoco se ven afectadas. Sin embargo:
+
+-   Los intervalos de confianza no son válidos.
+
+-   Los estadísticos t no son válidos. Estos no tienen una distribución $t$.
+
+-   Los estadísticos F no siguen una distribución $F$.
+
+-   Los estadísticos LM no siguen asintóticamente una distribución $\chi^2$.
+
+En sintésis, las pruebas de hipótesis no son válidas.
+
+```{r}
+library(wooldridge)
+library(car)
+library(tidyverse)
+library(modelsummary)
+library(lmtest)
+library(whitestrap)
+```
+
+## ¿Cómo identificarla?
+
+```{r}
+reg <- lm(wage ~ educ, data=wage1)
+summary(reg)
+```
+
+```{r}
+plot(wage1$educ, wage1$wage)
+```
+
+### Prueba de Breusch-Pagan
+
+1.  Regresar $y$ en las variables independientes. Obtener los residuos al cuadrado (uno para cada observación).
+
+2.  Regresar los residuos al cuadrado en las variables independientes. Conservar el $R^2_{\hat{u}^2}$.
+
+3.  Construir el estadístico $F$ o el estadístico $LM$ y computar el p-valor. La hipótesis nula es homocedasticidad.
+
+    $$
+    F=\frac{R^2_{\hat{u}^2}/k}{(1-R^2_{\hat{u}^2})/(n-k-1)}\sim F_{k, n-k-1}
+    $$
+
+    $$
+    LM=n\cdot R^2_{\hat{u}^2}\sim \chi_k^2
+    $$
+
+```{r}
+# paso 1
+reg1 <- lm(wage ~ educ, data=wage1)
+# paso 2
+u_est<- reg1$residuals
+u_est_2 <- u_est ^ 2
+reg_u <- lm(u_est_2 ~ educ, data=wage1)
+r_2_u <- summary(reg_u)$r.squared
+# paso 3
+F_stat <- (r_2_u / 1) / ((1-r_2_u) / (dim(wage1)[1] - 1 - 1))
+print(F_stat)
+lm_stat <- dim(wage1)[1] * r_2_u
+print(lm_stat)
+
+```
+
+```{r}
+p_val_f <- 1 - pf(F_stat, 1, dim(wage1)[1] - 1 - 1)
+print(p_val_f)
+p_val_chi <- 1 - pchisq(lm_stat, 1)
+print(p_val_chi)
+```
+
+Con ambos estadísticos se rechaza la hipótesis nula. En este caso se tendría heterocedasticidad.
+
+```{r}
+bptest(reg1)
+```
+
+### Prueba de White
+
+1.  Regresar $y$ en las variables independientes. Obtener los residuos, los valores ajustados, los errores al cuadrado y los valores ajustados al cuadrado.
+
+2.  Regresar los errores al cuadrado en los valores ajustados y los valores ajustados al cuadrado. Conservar el $R^2_{\hat{u}^2}$.
+
+3.  Construir los estadísticos $F$ o el estadístico $LM$ y computar el p-valor. La hipótesis nula es homocedasticidad.
+
+    $$
+    F=\frac{R^2_{\hat{u}^2}/k}{(1-R^2_{\hat{u}^2})/(n-k-1)}\sim F_{2, n-3}
+    $$
+
+$$
+LM=n\cdot R^2_{\hat{u}^2}\sim \chi_2^2
+$$
+
+```{r}
+# paso 1
+reg2 <- lm(wage ~ educ, data=wage1)
+u_est <- reg2$residuals
+u_est_2 <- u_est ^ 2
+y_est <- reg2$fitted.values
+y_est_2 <- y_est ^ 2
+# paso 2
+reg3 <- lm(u_est_2 ~ y_est + y_est_2)
+r_2_u <- summary(reg3)$r.squared
+# paso 3
+F_stat <- (r_2_u / 2) / ((1 - r_2_u) / (dim(wage1)[1] - 3))
+lm_stat <- dim(wage1)[1] * r_2_u 
+print(F_stat)
+print(lm_stat)
+```
+
+```{r}
+p_val_fwhite <- 1 - pf(F_stat, 2, dim(wage1)[1] - 3)
+print(p_val_fwhite)
+p_val_chiwhite <- 1 - pchisq(lm_stat, 2) 
+print(p_val_chiwhite)
+```
+
+```{r}
+whitestrap::white_test(reg2)
+```
+
+A TENER EN CUENTA: es posible que los tests para heterocedasticidad den como resultado rechazar la hipótesis nula. Sin embargo, esto puede deberse no solamente a que exista heterocedasticidad sino también a que la forma funcional no es correcta. Así que lo mejor será ajustar la forma funcional primero y después verificar heterocedasticidad.
+
+## ¿Cómo solucionarla?
+
+### Mínimos cuadrados ponderados
+
+Una forma que se puede emplear para corregir la heterocedasticidad es a través de mínimos cuadrados ponderados (WLS). En este caso, se asume que la heterocedasticidad tiene una forma funcional particular definida por la función conocida $h$.
+
+$$
+Var(u|\vec{\textbf{x}})=\sigma^2h(\vec{\textbf{x}})
+$$
+
+Se tiene entonces
+
+$$
+Var(u_i|\vec{\textbf{x}}_i)=\sigma^2h(\vec{\textbf{x}}_i)=\sigma^2h_i
+$$
+
+Dado que $Var(u_i|\vec{\textbf{x}}_i)=E(u_i|\vec{\textbf{x}}_i))=\sigma^2h_i$, si se pondera a $u_i$ por $\sqrt{h_i}$, se tiene
+
+$$
+E[(u_i/\sqrt{h_i})^2]=E[(u_i^2)]/h_i=\sigma^2h_i/h_i=\sigma^2
+$$ Esta ponderación elimina el componente que genera la heterocedasticidad. El modelo de regresión lineal múltiple para estimar los coeficientes quedaría de la forma
+
+$$
+\frac{y_i}{\sqrt{h_i}}=\frac{\beta_0}{\sqrt{h_i}}+\beta_1\frac{x_{i1}}{\sqrt{h_i}}+...+\beta_k\frac{x_{ik}}{\sqrt{h_i}}+\frac{u_i}{\sqrt{h_i}}
+$$
+
+$$
+y_i^*=\beta_0x_{i0}^*+\beta_1x_{i1}^*+...+\beta_kx_{ik}^*+u_i^*
+$$
+
+### Mínimos cuadrados generalizados factibles (FGLS)
+
+La función $h$ es difícil de encontrar, pero se puede estimar $\hat{h}$. Vamos a ver una de las opciones que existe
+
+$$
+Var(u|\vec{\textbf{x}})=\sigma^2h(\vec{\textbf{x}})
+$$
+
+$$
+h(\vec{\textbf{x}})=e^{\delta_0+\delta_1x_1+...+\delta_kxk}
+$$
+
+Con la prueba de Breusch-Pagan se asume que la heterocedasticidad es lineal, pero se debe garantizar que los valores de $h$ sean positivos para usar WLS y no es el caso con una función lineal. Se deben estimar los $\delta$'s en este caso.
+
+1.  Obtener $\hat{u}^2$ de la regresión estándar y calcular $log(\hat{u}^2)$.
+2.  Regresar $log(\hat{u}^2)$ en $x_1,…,x_k$ y obtener los valores ajustados $\hat{g}=\hat{log(\hat{u}^2)}$.
+3.  Obtener $\hat{h}_i=e^{\hat{g}_i}$.
+4.  Tomar cada variable y dividirla entre $1/\sqrt{\hat{h}_i}$.
+5.  Correr la regresión con las variables transformadas.
+
+```{r}
+reg <- lm(nettfa ~ inc + I((age-25)^2) + male + e401k, data=k401ksubs, subset=(fsize==1))
+reg_wls <- lm(nettfa ~ inc + I((age-25)^2) + male + e401k, weight=1/inc, data=k401ksubs, subset=(fsize==1))
+
+models <- list("ols"=reg,
+               "wls"=reg_wls)
+
+modelsummary(models, stars=T)
+```
+
+### ¿Qué pasa si la función está mal?
+
+Es mejor tener una función incorrecta a no intentar corregir la heterocedasticidad.
+
+## ¿Es realmente un problema?
+
+En la actualidad, resolver la heterocedasticidad no es un problema en tanto la preocupación de la econometría se encamina más hacia el insesgamiento o la consistencia de los estimadores. Dado que la heterocedasticidad no afecta ninguno de los dos, pero sí la inferencia, lo que se ha hecho es desarrollar metodologías que mantengan los mismos estimadores pero que permitan encontrar errores estándar robustos a la heterocedasticidad. Esto se presentará a continuación.
+
+### Errores robustos a la heterocedasticidad
+
+Vamos a ver primero cómo podemos llegar a estos errores robustos en la regresión lineal simple con sumatorias y después lo generalizaremos a través de álgebra lineal. Recuerde la ecuación para el cálculo de la varianza del estimador
+
+$$
+Var(\hat{\beta}_j)=\frac{\sigma^2}{SST_x}
+$$
+
+Suponga el modelo
+
+$$
+y_i=\beta_0+\beta_1x_i+u_i
+$$
+
+Con heterocedasticidad se tiene que $Var(u_i|x_i)=\sigma^2_i$ , esto limita la estimación de la varianza del estimador. $i$ indica que el error depende del valor de $x_i$. Multiplicando tanto el denominador como el numerador de la primera ecuación por la varianza de $x_i$, se tiene
+
+$$
+Var(\hat{\beta}_j)=\frac{\sum_{i=1}^n(x_i-\bar{x})^2\sigma^2}{SST_x^2}
+$$
+
+Según White (1980), se puede estimar a $\sigma^2$ en este caso de la forma $\hat{u}_i^2$.
+
+$$
+Var(\hat{\beta}_j)=\frac{\sum_{i=1}^n(x_i-\bar{x})^2\hat{u}_i^2}{SST_x^2}
+$$
+
+Esto se puede hacer con R de la siguiente manera
+
+```{r}
+set.seed(10)
+x <- runif(1000, -5, 5)
+e <- rnorm(1000, 0, 1)
+y <- 4 + 3 * x + e
+
+reg <- lm(y ~ x)
+sst_x <- sum((x - mean(x)) ^ 2)
+sqrt(sum((x-mean(x))^2 * reg$residuals^2)/sst_x^2)
+
+coeftest(reg, vcov=hccm(reg, type='hc0'))
+
+```
+
+Este último sería el error estándar para $\hat{\beta}_1$. Esto se puede extender al caso de regresión lineal múltiple
+
+$$
+y=\beta_0+\beta_1x_1+...+\beta_kx_k+u
+$$
+
+$$
+Var(\hat{\beta}_j)=\frac{\sum_{i=1}^n\hat{r}_{ij}^2\hat{u}_i^2}{SSR^2_j}=\frac{\sum_{i=1}^n\hat{r}_{ij}^2\hat{u}_i^2}{SST^2_j(1-R^2_j)^2}
+$$
+
+Donde $\hat{r}_{ij}^2$ son los residuos elevados al cuadrado de la regresión de $x_j$ en el resto de las variables independientes.
+
+```{r}
+set.seed(10)
+# generamos los datos poblacionales con dos variables independientes
+x1 <- runif(1000, -5, 10)
+x2 <- runif(1000, 20, 45)
+e <- rnorm(1000, 0, 1)
+y <- 4 + 2 * x1 + 3 * x2 + e
+
+# regresión de x1 en el resto de las variables independientes
+
+reg_x <- lm(x1 ~ x2)
+r_i <- reg_x$residuals
+r_i_2 <- reg_x$residuals ^ 2
+
+# regresión de y sobre las variables independientes
+
+reg <- lm(y ~ x1 + x2)
+u_i_2 <- reg$residuals ^ 2
+
+# cálculo del error estandar robusto a heterocedasticidad
+
+num <- sum(r_i_2 * u_i_2)
+den <- sum(r_i_2) ^2
+sqrt(num / den)
+
+# comparar con los resultados del paquete
+
+coeftest(reg, vcov=hccm(reg, type="hc0"))
+```
+
+Veamos un caso más general empleando matrices y observando todas las posibilidades disponibles para errores estándar robustos a la heterocedasticidad
+
+```{r}
+set.seed(10)
+x <- runif(1000, -5, 5)
+e <- rnorm(1000, 0, 1)
+y <- 4 + 3 * x + e
+
+X <- matrix(c(rep(1, 1000), x), ncol = 2)
+
+reg <- lm(y ~ x)
+
+u_est <- reg$residuals
+u_est_2 <- reg$residuals ^ 2
+bread <- solve(t(X) %*% X)
+
+H <- X %*% solve(t(X) %*% X) %*% t(X)
+
+summary(reg)
+```
+
+#### 
+
+$$
+Cov=(X^TX)^{-1}X^T\Omega X(X^TX)^{-1}
+$$
+
+$$
+E(uu')=\Omega
+$$
+
+$$
+E(uu')=\sigma^2I_n, \hspace{0.3cm} \sigma^2(X^TX)^{-1}
+$$
+
+$$
+\hat{\sigma}^2(X^TX)^{-1},\hspace{0.3cm} \hat{\sigma}^2=\hat{u}^T\hat{u}/(n-k),\hspace{0.3cm} \hat{u}=(I-X(X^TX)^{-1}X^T)y\hspace{0.3cm}
+$$
+
+#### HC0
+
+$$
+\hat{\Omega}=\text{diag}(\hat{u}^2_1,\hat{u}^2_2,...,\hat{u}^2_n)
+$$
+
+```{r}
+meat <- diag(u_est_2)
+covHC <- bread %*% t(X) %*% meat %*% X %*% bread
+ee_HC <- sqrt(diag(covHC))
+ee_HC
+
+coeftest(reg, vcov=hccm(reg, type='hc0'))
+```
+
+Este primer ejemplo de errores robustos a la heterocedasticidad no toma en cuenta que los residuos de MCO tienden a ser muy pequeños. Esto puede tratarse corrigiendo por los grados de libertad: HC1.
+
+#### HC1
+
+$$
+(n/(n-k))(X^TX)^{-1}X^T\hat{\Omega} X(X^TX)^{-1}
+$$
+
+```{r}
+## HC1
+
+n <- dim(X)[1]
+k <- dim(X)[2]
+
+covHC1 <- (n/(n-k)) * covHC
+ee_HC1 <- sqrt(diag(covHC1))
+
+ee_HC1
+
+coeftest(reg, vcov=hccm(reg, type='hc1'))
+```
+
+#### HC2
+
+Emplear los grados de libertad no es la única forma de compensar el hecho de ue los residuos tienden a subestimar los verdaderos errores. Se puede plantear
+
+$$
+\tilde{\sigma}_i^2=\hat{u}^2_i/(1-h_i)
+$$
+
+$$
+(X^TX)^{-1}X^T\tilde{\Omega} X(X^TX)^{-1}
+$$
+
+$$
+\tilde{\Omega}=\text{diag}(\tilde{\sigma}^2_1,\tilde{\sigma}^2_2,...,\tilde{\sigma}^2_n)
+$$
+
+```{r}
+## HC2
+
+den_ktt <- 1 - diag(H)
+sigma_c <- u_est_2 / den_ktt
+
+meat2 <- diag(sigma_c)
+
+covHC2 <- bread %*% t(X) %*% meat2 %*% X %*% bread
+
+ee_HC2 <- sqrt(diag(covHC2))
+ee_HC2
+
+coeftest(reg, vcov=hccm(reg, type='hc2'))
+```
+
+#### HC3
+
+Adicionalmente, se puede discontar mucho más el efecto de las $h_i's$ elevando al cuadrado el denominador
+
+$$
+\hat{\Omega}=\text{diag}(\hat{u}^2_1/(1-h_1)^2,\hat{u}^2_2/(1-h_2)^2
+,...,\hat{u}^2_n/(1-h_n)^2
+)
+$$
+
+```{r}
+## HC3
+
+u_ast <- u_est / den_ktt
+u_ast_2 <- u_ast ^2
+meat_ast <- diag(u_ast_2)
+#covHC3 <- ((n-1)/n) * (bread %*% (t(X) %*% meat_ast %*% X - (1/n) * (t(X)%*%u_ast%*%t(u_ast)%*%X )) %*%bread)
+
+covHC3 <- bread %*% t(X) %*% meat_ast %*% X %*% bread
+ee_HC3 <- sqrt(diag(covHC3))
+
+ee_HC3
+
+coeftest(reg, vcov=hccm(reg, type='hc3'))
+```
+
+#### HC4
+
+Por último, Cribari-Neto (2004) sugiere un estimador que controla el valor de descuento para cada observación $i$ y está dado por el raitio entre $h_i$ y el promedio de las $h_i's$.
+
+$$
+\hat{\Omega}=\text{diag}(\hat{u}^2_1/(1-h_1)^{\delta_1},\hat{u}^2_2/(1-h_2)^{\delta_2}
+,...,\hat{u}^2_n/(1-h_n)^{\delta_n}
+)
+$$
+
+$$
+\delta_i=min\bigg\{4, \frac{nh_i}{p}\bigg\}
+$$
+donde $p$ es igual a $k$. De esta forma el i-ésimo residuo al cuadrado será mayor cuando $h_i$ sea grande relativo al promedio de las $h_i's$.
+
+```{r}
+## HC4
+n <- length(x)
+p <- sum(diag(X %*% solve(t(X) %*% X) %*% t(X)))
+
+ex <- matrix(c(rep(4, 1000), n * diag(H) / (p)), ncol = 2)
+deltas <- apply(ex, 1, min)
+den_h <- den_ktt ^ deltas
+meat_4 <- diag(u_est_2 / den_h)
+
+covHC4 <- bread %*% t(X) %*% meat_4 %*% X %*% bread
+ee_HC4 <- sqrt(diag(covHC4))
+ee_HC4 
+
+coeftest(reg, vcov=hccm(reg, type='hc4'))
+```
+
+## Inferencia con heterocedasticidad
+
+Ahora, los estadísticos $t$, $F$ y $LM$ se pueden utilizar. Suponga el modelo
+
+```{r}
+reg <- lm(cumgpa~sat+hsperc+tothrs+female+black+white,data=gpa3)
+summary(reg)
+```
+
+```{r}
+coeftest(reg, vcov=hccm(reg, type='hc0'))
+```
+
+Una prueba $F$ de significancia conjunta quedaría de la forma
+
+```{r}
+linearHypothesis(reg, c("black=0", "white=0"), vcov=hccm(reg,type="hc0"))
+```
