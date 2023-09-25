@@ -1,0 +1,105 @@
+---
+title: "Basic EDA"
+author: "Carlos Ortiz"
+format: html
+editor: visual
+---
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+library(wooldridge)
+library(tidyverse)
+library(cowplot)
+library(ggcorrplot)
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+wage <- wage1 |>
+  select(c(wage, educ, exper, tenure, female, married)) |>
+  mutate(gender=ifelse(female==1, "female", "male"),
+         fam.status=ifelse(married==1, "married", "single")) |>
+  select(-c(female, married))
+```
+
+#### Diccionario de variables
+
+-   wage: salario en dólares
+
+-   gender: género (female, male)
+
+-   fam.status: estado civil (married, single)
+
+-   exper: años de experiencia
+
+-   educ: años de educación
+
+-   tenure: años en el trabajo actual
+
+## Estadísticos descriptivos
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+wage_num <- select(wage, -c(gender, fam.status))
+df <- data.frame("means" = sapply(wage_num, mean),
+                 "medians" = sapply(wage_num, median),
+                 "vars" = sapply(wage_num, var),
+                 "sds" = sapply(wage_num, sd))
+head(df)
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+table(wage$gender)
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+table(wage$fam.status)
+```
+
+## Distribución
+
+### Variables cualitativas
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+par(mfrow=c(1, 2))
+barplot(table(wage$gender))
+barplot(table(wage$fam.status))
+
+```
+
+### Variables cuantitativas
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+par(mfrow=c(2, 2))
+hist(wage$educ, main='educ', xlab='educ')
+hist(wage$exper, main='exper', xlab='exper')
+hist(wage$tenure, main='tenure', xlab='tenure')
+hist(wage$wage, main='wage', xlab='wage')
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+par(mfrow=c(1, 4))
+hist(wage$educ, main='educ', xlab='educ')
+hist(wage$exper, main='exper', xlab='exper')
+hist(wage$tenure, main='tenure', xlab='tenure')
+hist(wage$wage, main='wage', xlab='wage')
+
+```
+
+## Correlación
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+r <- cor(wage_num)
+r
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ggcorrplot(r,
+           hc.order = TRUE,
+           type = "lower",
+           lab = TRUE)
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+g1 <- ggplot(data = wage, aes(x = gender, y = wage)) + geom_boxplot()
+g2 <- ggplot(data = wage, aes(x = fam.status, y = wage)) + geom_boxplot()
+
+plot_grid(g1, g2)
+```
