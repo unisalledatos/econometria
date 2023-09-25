@@ -1,0 +1,423 @@
+---
+title: "Temas adicionales"
+author: "Carlos Ortiz"
+format: html
+editor: visual
+---
+
+```{r}
+library(wooldridge)
+library(lmtest)
+library(car)
+library(modelsummary)
+library(tidyverse)
+```
+
+## Interacciones
+
+Es posible que algunas variables independientes tengan relaciones entre sí y sea necesario capturar los posibles cambios en la variable dependiente a partir de esta relación. Por ejemplo, es posible que el efecto de un año de educación adicional sobre el salario de una persona sea diferente dependiendo del sexo de la persona. O, también, en un contexto de valuación de inmuebles, puede que una habitación adicional incremente el precio, pero si el tamaño del inmueble se mantiene constante, este empezará a tener un efecto negativo (las habitaciones serán cada vez más pequeñas). Esta relación entre las variables (educación y sexo, habitaciones y metros cuadrados) se puede capturar a través de una interacción de las variables.
+
+### Interacciones con dummies
+
+En el primer escenario, evaluaremos si existe una relación entre educación y sexo, en el contexto de una ecuación de Mincer. Es decir, si existe un efecto diferente de un año adicional de educación en una persona, si el sexo cambia. Consider los modelos
+
+$$
+wage_i=\beta_0+\beta_1 female_i + u_i
+$$
+
+$$
+wage_i=\beta_0 +\beta_1 female_i +\beta_2 educ_i+u_i
+$$
+
+$$
+wage_i=\beta_0+\beta_1female_i+\beta_2educ_i+\beta_3female_i\cdot educ_i+u_i
+$$
+
+```{r}
+reg  <- lm(wage ~ female, data = wage1)
+reg1 <- lm(wage ~ female + educ, data = wage1)
+reg2 <- lm(wage ~ female + educ + female:educ, data=wage1)
+
+modelos <- list("reg1" = reg,
+                "reg1" = reg1,
+                "reg2" = reg2)
+
+modelsummary(modelos, stars=TRUE)
+```
+
+Así como anteriormente se había visto que los modelos podrían tener interceptos diferentes, en este caso se observan pendientes diferentes. En el caso de que el individuo sea una mujer
+
+$$
+E(wage|female=1, educ)=\beta_0+\beta_1+\beta_2educ+\beta_3 educ
+$$
+
+$$
+E(wage|female=1, educ)=(\beta_0+\beta_1)+(\beta_2+\beta_3)educ
+$$
+
+Por otra parte, si el individuo es hombre
+
+$$
+E(wage|female=0, educ)=\beta_0+\beta_2educ
+$$
+
+Esto se puede observar gráficamente a partir del modelo estimado anteriormente
+
+```{r}
+wage <- wage1 |> mutate(female=factor(female))
+wage$fit1 <- reg$fitted.values
+wage$fit2 <- reg1$fitted.values
+wage$fit3 <- reg2$fitted.values
+
+ggplot(data=wage, aes(x=educ, y=fit2))+
+  geom_line(aes(color=female)) +
+  theme_classic()
+
+```
+
+```{r}
+ggplot(data=wage, aes(x=educ, y=fit3))+
+  geom_line(aes(color=female)) + 
+  theme_classic()
+```
+
+### Interacciones entre dummies
+
+Esta partircularidad se puede observar también al interactuar variables dummy. Considere los siguientes modelos
+
+$$
+wage_i=\beta_0+\beta_1 female_i + u_i
+$$
+
+$$
+wage_i=\beta_0 +\beta_1 female_i +\beta_2 married_i+u_i
+$$
+
+$$
+wage_i=\beta_0+\beta_1female_i+\beta_2married_i+\beta_3female_i\cdot married_i+u_i
+$$
+
+```{r}
+reg  <- lm(wage ~ female, data = wage1)
+reg1 <- lm(wage ~ female + married, data = wage1)
+reg2 <- lm(wage ~ female + married + female:married, data=wage1)
+
+modelos <- list("reg1" = reg,
+                "reg1" = reg1,
+                "reg2" = reg2)
+
+modelsummary(modelos, stars=TRUE)
+```
+
+En este caso se tienen cuatro grupos: hombres solteros, hombres casados, mujeres solteras y mujeres casadas.
+
+$$
+E(wage|female=1, married=1)= \beta_0 + \beta_1+\beta_2+\beta_3
+$$
+
+$$
+E(wage|female=1, married=0)= \beta_0+\beta_1
+$$
+
+$$
+E(wage|female=0, married=1)=\beta_0+\beta_2
+$$
+
+$$
+E(wage|female=0, married=0)=\beta_0
+$$
+
+El grupo base, como puede verse, son los hombres solteros.
+
+### Otras interacciones
+
+Este tipo de interacciones puede llevarse a cabo también entre variables continuas. Suponga que está valuando los inmuebles de un territorio determinado y está interesado, por ejemplo, en la relación entre el área del inmueble y el número de habitaciones. Es fácil imaginar que un área mayor o un número de habitaciones mayor va a incrementar el valor del inmueble. Sin embargo, capturar un efecto ceteris paribus no es tan claro si se toma a cada variable por separado. Considere por ejemplo, el siguiente modelo
+
+$$
+p_i = \beta_0+\beta_1area_i+\beta_2habs_i+u_i
+$$
+
+Si mantenemos contante el número de habitaciones y el área crece, se espera que el coeficiente estimado sea positivo, pero no tendría mucho sentido tener $500m^2$ de área con una sola habitación, expandirla a $600m^2$ con el mismo número de habitaciones y que el efecto sobre el precio sea constante. Esto también aplica en sentido contrario. Si incrementamos el número de habitaciones manteniendo el área constante, una habitación más puede ser beneficiosa, pero el tamaño de las habitaciones tenderá a ser cada vez más y más pequeño. Esto tiene que afectar el precio de alguna manera. Ahora, si consideramos el siguiente modelo, la situación puede cambiar un poco.
+
+$$
+p_i = \beta_0+\beta_1area_i+\beta_2habs_i+\beta_3 area_i \cdot habs_i +u_i
+$$
+
+Observe que esta interacción va a capturar la posible relación entre el area del inmueble y el número de habitaciones.
+
+```{r}
+reg <- lm(price ~ sqrft + bdrms + sqrft:bdrms, data=hprice1)
+reg1 <- lm(price ~ sqrft + bdrms, data=hprice1)
+reg2 <- lm(price ~ sqrft, data=hprice1)
+reg3 <- lm(price ~ bdrms, data=hprice1)
+
+models <- list("model1" = reg3, 
+               "model2" = reg2,
+               "model3" = reg1,
+               "model4" = reg)
+
+modelsummary(models, stars=T)
+```
+
+```{r}
+linearHypothesis(reg, c("sqrft=0", "bdrms=0", "sqrft:bdrms=0"))
+```
+
+### Test de Chow
+
+Estas interacciones nos pueden permitir evaluar si existen diferencias entre grupos a nivel general. Por ejemplo, si existen diferencias entre hombres y mujeres a nivel general teniendo como variable dependiente al salario. Considere el modelo
+
+$$
+wage_i = \beta_0+\delta_0female_i+\delta_1female_i\cdot educ_i +\delta_2 female_i \cdot exper_i+\delta_3female_i\cdot exper_i^2+\beta_1educ_i+\beta_2exper_i+\beta_3exper_i^2+u_i
+$$
+
+La hipótesis nula del test de Chow es que
+
+$$
+H_0:\delta_0=\delta_1=\delta_2=\delta_3=0
+$$
+
+Es decir, que ninguno de los coeficientes de las interacciones es estadísticamente significativo y por tanto no habría diferencia significativa entre los grupos de hombres y de mujeres en cuanto al salario.
+
+```{r}
+reg_t <- lm(wage ~ female + educ + 
+              exper + 
+              expersq +
+              female:educ + 
+              female:exper +
+              female:expersq, data=wage1)
+reg_ni <- lm(wage ~  educ + 
+              exper + 
+              expersq, data=wage1)
+reg_h <- lm(wage ~ educ + exper + expersq, data=filter(wage1, female == 0))
+reg_m <- lm(wage ~ educ + exper + expersq, data=filter(wage1, female == 1))
+
+models <- list("total" = reg_t,
+               "no_int" = reg_ni,
+               "hombres" = reg_h,
+               "mujeres" = reg_m)
+
+modelsummary(models)
+```
+
+Ejecutamos el test de Chow.
+
+```{r}
+linearHypothesis(reg_t, c("female=0","female:educ=0", "female:exper", "female:expersq=0"))
+```
+
+A pesar de que ninguno de los coeficientes de las interacciones es estadísticamente significativo, el test de Chow muestra que se rechaza la hipótesis nula. Sí existe una diferencia salarial entre ambos grupos. Veamos el siguiente ejemplo
+
+$$
+cumgpa_i = \beta_0+\delta_0female_i+\delta_1female_i\cdot sat_i +\delta_2 female_i \cdot hsperc_i+\delta_3female_i\cdot tothrs_i+\beta_1sat_i+\beta_2hsperc_i+\beta_3tothrs_i+u_i
+$$
+
+```{r}
+reg_t <- lm(cumgpa ~ female + sat + 
+              hsperc + 
+              tothrs +
+              female:sat + 
+              female:hsperc +
+              female:tothrs, data=filter(gpa3, spring == 1))
+reg_ni <- lm(cumgpa ~  sat + 
+              hsperc + 
+              tothrs, data=filter(gpa3, spring == 1))
+reg_h <- lm(cumgpa ~ sat + 
+              hsperc + 
+              tothrs, data=filter(gpa3, spring == 1, female == 0))
+reg_m <- lm(cumgpa ~ sat + 
+              hsperc + 
+              tothrs, data=filter(gpa3, spring == 1, female == 1))
+
+models <- list("total" = reg_t,
+               "no_int" = reg_ni,
+               "hombres" = reg_h,
+               "mujeres" = reg_m)
+
+modelsummary(models)
+```
+
+```{r}
+linearHypothesis(reg_t, c("female=0","female:sat=0", "female:hsperc=0", "female:tothrs=0"))
+```
+
+Al igual que en el ejemplo anterior, a pesar de que en el modelo los coeficientes no son estadísticamente significativos a nivel individual, sí se puede concluir por el test de Chow que son conjuntamente significativos. Sí hay diferencia en el puntaje entre estos dos grupos.
+
+## Forma funcional
+
+### Test de Reset
+
+Es posible que la forma funcional del modelo escogida no sea la correcta. Una interacción, un elemento cuadrático o un logaritmo mal utilizado o no utilizado puede provocar sesgos. Por ejemplo, si se tiene la ecuación de Mincer
+
+$$
+log(wage)=\beta_0+\beta_1educ+\beta_2exper +u
+$$
+
+No se está teniendo en cuenta la posible forma cuadrática de la variable $exper$. Otro ejemplo puede ser
+
+$$
+log(wage)=\beta_0+\beta_1educ+\beta_2exper+\beta_3exper^2+\beta_4female+\beta_5female\cdot educ+ u
+$$
+
+Si se omite la interacción entre $female$ y $educ$, no se obtendrán estimadores insesgados para ninguno de los otros parámetros. Podemos detectar si se tiene un problema con la forma funcional través de la prueba RESET (regression specification error test).
+
+1.  Regresar $y$ en las variables independientes y obtener los valores ajustados $\hat{y}$.
+
+2.  Regresar $y$ en las variables independientes y en $\hat{y}^2$ y $\hat{y}^3$.
+
+3.  La hipótesis nula es que la primera regresión está correctamente especificada. RESET es el estadístico $F$ para probar
+
+    $$
+    H_0:\delta_1=\delta_2=0
+    $$
+
+4.  Un estadístico $F$ significativo sugiere que se tiene algún problema con la forma funcional.
+
+    $$
+    F\sim F_{2, n-k-3}
+    $$
+
+Un ejemplo. Tomemos las ecuaciones de Mincer con y sin la experiencia elevada al cuadrado, además de esta última pero en lugar de la variable dependiente como variable de nivel, se pondrá en forma logarítmica. Llevaremos a cabo la prueba de RESET para las tres:
+
+```{r}
+reg1 <- lm(wage ~ educ + exper, data = wage1)
+reg2 <- lm(wage ~ educ + exper + expersq, data = wage1)
+reg3 <- lm(lwage ~ educ + exper + expersq, data = wage1)
+
+models <- list("reg1" = reg1,
+               "reg2" = reg2,
+               "reg3" = reg3)
+
+modelsummary(models, stars=T)
+```
+
+```{r}
+resettest(reg1, power=2:3, type="fitted")
+```
+
+```{r}
+resettest(reg2, power=2:3, type="fitted")
+```
+
+```{r}
+resettest(reg3, power=2:3, type="fitted")
+```
+
+### Test de Davinson-Mackinon
+
+Otra forma de probar si existe un problema con la forma funcional es el test de Davinson-Mackinon. Este consiste en lo siguiente. Suponga que tiene las variables $y$, $x_1$ y $x_2$.
+
+1.  Regresar $y$ en $x_1$ y $x_2$. Regresar además $y$ en $log(x_1)$ en $log(x_2)$.
+2.  Obtener los valores ajustados de la segunda regresión $\breve{y}$.
+3.  Regresar $y$ en $x_1$, $x_2$, y $\breve{y}$. Si el coeficiente de esta última es significativo, no hay razón para utilizar la relación lineal. Sin embargo, esto no significa que sea el modelo correcto. Alternativamente, se puede regresar a $y$ en $log(x_1)$, $log(x_2)$ y los valores ajustados de la regresión lineal. Si el coeficiente de esta última es significativo, es evidencia contra la relación logarítmica.
+
+Esta prueba es un ejemplo de pruebas no anidadas (como las de significancia conjunta estudiadas en otras sesiones). Estas pruebas tienen algunos problemas:
+
+1.  Puede no surgir nunca un ganador. Pueden rechazarse ambas, puede no rechazarse ninguna. En cuyo caso podría observarse el $R^2$. En el primer caso, habría que trabajar un poco más.
+2.  Si se rechaza alguno, no quiere decir que el otro es mejor.
+
+## Variables proxy
+
+Considere la siguiente ecuación de Mincer que reconoce un efecto de la habilidad sobre el salario
+
+$$
+lwage=\beta_0+\beta_1educ+\beta_2exper+\beta_3habil+u
+$$
+
+El problema es que la variable habilidad no es observable y puede estar correlacionada tanto con educación como con experiencia, generando así un sesgo en los estimadores. ¿Cómo se puede evitar este sesgo? Una forma es obtener una variable proxy para la variable omitida. Una variable proxy es algo que está relacionado con la variable no observada por la que quisiéramos controlar en el modelo (habilidad, en este caso). Por ejemplo, la variable IQ puede ser utilizada como una variable proxy de habilidad. Esto no quiere decir que IQ sea lo mismo que habilidad, lo que se necesita es que IQ esté correlacionada con habilidad. Generalicemos el problema partiendo del siguiente modelo:
+
+$$
+y=\beta_0+\beta_1x_1+\beta_2x_2+\beta_3x_3^*+u
+$$
+
+En este caso la variable $x_3^*$ no es observable. Entonces se utilizará una variable que esté correlacionada con la variable $x_3^*$ que funcione como variable proxy: la variable $x_3$. Esta sí es observable. Esta debe tener alguna relación con la variable no observada
+
+$$
+x_3^*=\delta_0+\delta_3x_3+v_3
+$$
+
+$$
+\delta_3\neq 0
+$$
+
+Se puede utilizar esta variable para obtener estimadores insesgados (o al menos consistentes) de $\beta_2$ y de $\beta_3$ con el siguiente modelo
+
+$$
+y=\beta_0+\beta_1x_1+\beta_2x_2+\beta_3x_3+u
+$$
+
+Para que esta solución permita cumplir el objetivo, se deben cumplir dos supuestos:
+
+1.  El valor esperado de $u$ dadas las variables independientes, incluyendo observadas y no observadas, es 0
+
+    $$
+    E(u|x_1,x_2,x_3,x_3^*)=0
+    $$
+
+    Esto adicionalmente significa que si se pudiera observar $x_3^*$, no afectaría en nada el no incluir $x_3$, ya que la variable que sí afecta a la variable $y$ es $x_3^*$, no $x_3$.
+
+2.  El error $v_3$ no está correlacionado con $x_1$, $x_2$ ni con $x_3$.
+
+    $$E(x_3^*|x_1,x_2,x_3)=E(x_3^*|x_3)=\delta_0+\delta_3x_3$$
+
+    Esto implica que una vez se controla por $x_3$, $x_1$ y $x_2$ no tienen correlación con $x_3^*$. Esto garantiza que, al no incluir la variable no observada, no se tenga algún tipo de violación al supuesto de exogeneidad.
+
+```{r}
+reg_nh <- lm(lwage ~ educ + exper + tenure, data=wage2)
+reg_iq <- lm(lwage ~ educ + exper + tenure + IQ, data=wage2)
+
+models <- list("no_iq" = reg_nh,
+               "iq" = reg_iq)
+
+modelsummary(models, stars=TRUE)
+```
+
+Si no se satisfacen los supuestos, se puede incluir sesgo en los estimadores.
+
+## Error de medición
+
+Es posible que por diferentes motivos, las variables que se utilicen en los modelos tengan problemas de medición. Esto puede pasar tanto en la variable dependiente como en las variables independientes con diferentes consecuencias sobre el modelo y los estimadores.
+
+### Variable dependiente
+
+Analizaremos primero el caso de tener un error de medición en la variable dependiente. Considere el modelo
+
+$$
+y^*=\beta_0+\beta_1x_1+\beta_2x_2+...+\beta_kx_k+u
+$$
+
+En este caso el error se puede definir como
+
+$$
+e_0=y-y^*
+$$
+
+Si se asume que el error es independiente de las variables independientes, la varianza del error quedaría como
+
+$$
+Var(u+e_0)=\sigma_u^2+\sigma_0^2>\sigma_u^2
+$$
+
+En este caso, el error es mayor a si no tuviésemos un error de medición. En este caso no se puede hacer mucho, solo recolectar mejor información. Dado que no hay correlación con las variables independientes, MCO tiene buenas propiedades.
+
+### Variable independiente
+
+Las consecuencias son un poco diferentes cuando es una variable independiente la que tiene el error de medición. Se puede partir del modelo de regresión simple
+
+$$
+y=\beta_0+\beta_1x_1^*+u
+$$
+
+La variable $x_1^*$ tiene un error de medición
+
+$$
+e_1=x_1-x_1^*, \hspace{0.3cm} E(e_1)=0,\hspace{0.3cm}E(y|x_1^*,x_1)=E(y|x_1^*)
+$$
+
+Con $Cov(x_1,e_1)=0$ se tiene que
+
+$$
+y=\beta_0+\beta_1x_1+(u-\beta_1e_1)
+$$
+
+En este caso el estimador MCO de $\beta_1$ es consistente. Sin embargo, si $Cov(x_1^*,e_1)=0$, entonces, por definición,$Cov(x_1,e_1)\neq0$ y el estimador MCO es sesgado e inconsistente. Esto se puede extender fácilmente a la regresión lineal múltiple en cuyo caso los estimadores MCO serían sesgados e inconsistentes.
