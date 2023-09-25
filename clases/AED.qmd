@@ -103,3 +103,12 @@ g2 <- ggplot(data = wage, aes(x = fam.status, y = wage)) + geom_boxplot()
 
 plot_grid(g1, g2)
 ```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+par(mfrow=c(1, 2))
+barplot(table(wage$gender, wage$fam.status),
+        legend= rownames(table(wage$gender, wage$fam.status)))
+barplot(table(wage$gender, wage$fam.status),
+        legend= rownames(table(wage$gender, wage$fam.status)),
+        beside=TRUE)
+```
