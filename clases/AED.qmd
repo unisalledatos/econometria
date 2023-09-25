@@ -100,8 +100,10 @@ ggcorrplot(r,
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 g1 <- ggplot(data = wage, aes(x = gender, y = wage)) + geom_boxplot()
 g2 <- ggplot(data = wage, aes(x = fam.status, y = wage)) + geom_boxplot()
+g3 <- ggplot(data = wage, aes(x = gender, y = wage)) + geom_violin()
+g4 <- ggplot(data = wage, aes(x = fam.status, y = wage)) + geom_violin()
 
-plot_grid(g1, g2)
+plot_grid(g1, g2, g3, g4)
 ```
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
