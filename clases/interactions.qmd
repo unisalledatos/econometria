@@ -197,7 +197,7 @@ models <- list("total" = reg_t,
                "hombres" = reg_h,
                "mujeres" = reg_m)
 
-modelsummary(models)
+modelsummary(models, stars = T)
 ```
 
 Ejecutamos el test de Chow.
@@ -206,7 +206,7 @@ Ejecutamos el test de Chow.
 linearHypothesis(reg_t, c("female=0","female:educ=0", "female:exper", "female:expersq=0"))
 ```
 
-A pesar de que ninguno de los coeficientes de las interacciones es estadísticamente significativo, el test de Chow muestra que se rechaza la hipótesis nula. Sí existe una diferencia salarial entre ambos grupos. Veamos el siguiente ejemplo
+El test de Chow muestra que se rechaza la hipótesis nula. Sí existe una diferencia salarial entre ambos grupos. Veamos el siguiente ejemplo
 
 $$
 cumgpa_i = \beta_0+\delta_0female_i+\delta_1female_i\cdot sat_i +\delta_2 female_i \cdot hsperc_i+\delta_3female_i\cdot tothrs_i+\beta_1sat_i+\beta_2hsperc_i+\beta_3tothrs_i+u_i
@@ -234,14 +234,14 @@ models <- list("total" = reg_t,
                "hombres" = reg_h,
                "mujeres" = reg_m)
 
-modelsummary(models)
+modelsummary(models, stars = T)
 ```
 
 ```{r}
 linearHypothesis(reg_t, c("female=0","female:sat=0", "female:hsperc=0", "female:tothrs=0"))
 ```
 
-Al igual que en el ejemplo anterior, a pesar de que en el modelo los coeficientes no son estadísticamente significativos a nivel individual, sí se puede concluir por el test de Chow que son conjuntamente significativos. Sí hay diferencia en el puntaje entre estos dos grupos.
+Al igual que en el ejemplo anterior, se puede concluir por el test de Chow que son conjuntamente significativos. Sí hay diferencia en el puntaje entre estos dos grupos.
 
 ## Forma funcional
 
