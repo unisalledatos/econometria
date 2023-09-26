@@ -1,0 +1,197 @@
+---
+title: "Variables instrumentales"
+author: "Carlos Ortiz"
+format: html
+editor: visual
+---
+
+```{r}
+library(AER)
+library(tidyverse)
+library(modelsummary)
+library(AER)
+library(ggdag)
+library(wooldridge)
+```
+
+## Variables instrumentales
+
+```{r}
+dag_object <- dagify(y ~ x + u)
+
+ggdag(dag_object) + 
+  theme_void()
+```
+
+Motivación para variables instrumentales: endogeneidad
+
+-   Variables omitidas
+
+-   Error de medición
+
+-   Simultaneidad
+
+```{r}
+dag_object <- dagify(y ~ x + u,
+                     x ~ u)
+
+ggdag(dag_object) + 
+  theme_void()
+```
+
+$$
+y=\beta_0+\beta_1x_1+...+\beta_kx_k+u
+$$
+
+$$
+E(u)=0, \hspace{0.3cm}Cov(x_j, u)=0, \hspace{0.3cm} j=1,2,...,k-1
+$$
+
+$$
+Cov(x_k,u)\neq0
+$$
+
+Se necesita una variable $z_1$ que cumpla con dos supuestos:
+
+-   Exogeneidad
+
+    $$
+    Cov(z_1,u)=0
+    $$
+
+-   Relevancia
+
+    $$
+    x_k=\delta_0+\delta_1x_1+...+\delta_{k-1}x_{k-1}+\theta_1z_1+r_k
+    $$
+
+    $$
+    E(r_k)=0,\hspace{0.3cm}Cov(x_j,r_k)=0,\hspace{0.3cm}j=1,...,k-1
+    $$
+
+    $$
+    Cov(z_1,r_k)=0
+    $$
+
+    $$
+    \theta_1\neq0
+    $$
+
+Se puede derivar el estimador de variables instrumentales en términos matriciales
+
+$$
+y=\textbf{X}\beta + u
+$$
+
+$$
+\textbf{z}=(1,x_1,...,x_{k-1},z_1)
+$$
+
+$$
+E(\textbf{z}^Tu)=0
+$$
+
+$$
+\hat{\beta}_{IV}=(Z^TX)^{-1}Z^Ty
+$$
+
+Este estimador sigue siendo sesgado pero es consistente. La inferencia se puede hacer tal y como se ha hecho hasta el momento.
+
+```{r}
+dag_object <- dagify(y ~ x + u,
+                     x ~ u + z)
+
+ggdag(dag_object) + 
+  theme_void()
+```
+
+```{r}
+ols <- lm(lwage ~ educ + exper, data=wage2)
+iv <- ivreg(lwage ~ educ + exper | educ + feduc + meduc, data=wage2)
+
+models <- list("ols" = ols,
+               "iv" = iv)
+
+modelsummary(models, stars=T)
+```
+
+## Mínimos cuadrados en dos etapas
+
+¿Qué pasa si se tienen varios instrumentos? Se puede utilizar mínimos cuadrados en dos etapas.
+
+$$
+Cov(z_h,u)=0,\hspace{0.3cm}h=1,2,...,m
+$$
+
+$$
+\textbf{z}=(1,x_1,x_2,...,x_{k-1}z_1,...,z_m),\hspace{0.3cm}1xL(L=K+M)
+$$
+
+$$
+x_k=\delta_0+\delta_1x_1+...+\delta_{k-1}x_{k-1}+\theta_1z_1+...+\theta_mz_m+r_k
+$$
+
+El método consiste en dos etapas:
+
+1.  **Primera etapa:** obtener $\hat{x}_k$ de la regresión de $x_k$ en $x_1,…,x_{k-1},z_1,…,z_m$.
+2.  **Segunda etapa:** regresión de $y$ en $1,x_1,…,x_{k-1},\hat{x}_k$.
+
+El estimador resultado es el estimador de mínimos cuadrados en dos etapas
+
+$$
+\hat{\beta}_{2SLS}=(\hat{X}^T\hat{X})^{-1}\hat{X}^Ty
+$$
+
+donde $\hat{X}$ es la matriz $X$ pero con la variable $x_k$ instrumentada. Este estimador es sesgado pero consistente y asintóticamente normal.
+
+## Tests importantes
+
+### Test de Hausman (endogeneidad)
+
+Para identificar si existe endogeneidad, se puede llevar a cabo el test de Hausman. Considere el modelo
+
+$$
+y_1=\beta_0+\beta_1y_2+\beta_2z_1+\beta_3z_2+u_1
+$$
+
+Donde $y_1$ y $y_2$ son variables endógenas y $z_1$ y $z_2$ son variables exógenas. Se cuenta además con otras dos variables exógenas $z_3$ y $z_4$. El objetivo de la prueba es comparar directamente MC2E con MCO. Para ello:
+
+1.  Ajustar $y_2$ en $z_1$, $z_2$, $z_3$, y $z_4$.
+
+2.  Obtener los errores de esta regresión $\hat{v}_2$.
+
+3.  Ajustar la regresión
+
+    $$
+    y_1=\beta_0+\beta_1y_2+\beta_2z_1+\beta_3z_2+\delta_1\hat{v}_2+error
+    $$
+
+    Con la hipótesis nula
+
+    $$
+    H_0:\delta_1=0
+    $$
+
+4.  Si se rechaza la hipótesis nula, $y_2$ es endógena.
+
+### Test de Sargan (sobreidentificación)
+
+Es posible que tengamos más instrumentos de los que realmente necesitamos. Deberíamos tener un instrumento por cada variable endógena, de lo contrario tendríamos un exceso de información. Esto se puede verificar a través de un test:
+
+1.  Estimar la ecuación estructural a partir de MC2E y obtener los residuos de esta regresión $\hat{u}_1$.
+
+2.  Regresar $\hat{u}_1$ en las variable exógenas y obtener el $R^2$ de esta regresión.
+
+3.  Con la hipótesis nula de que los instrumentos no están correlacionados con el error, se construye el estadístico LM
+
+    $$
+    nR^2\sim\chi_q^2
+    $$
+
+    Donde $q$ es el número de variables instrumentales menos el número de variables explicativas endógenas.
+
+```{r}
+summary(iv, diagnostics = T)
+```
+
+## 

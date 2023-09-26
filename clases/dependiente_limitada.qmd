@@ -1,0 +1,359 @@
+---
+title: "Variable dependiente limitada"
+author: "Carlos Ortiz"
+format: html
+editor: visual
+---
+
+```{r}
+library(wooldridge)
+library(tidyverse)
+library(cowplot)
+library(modelsummary)
+library(lmtest)
+```
+
+## Modelo de probabilidad lineal
+
+Hemos analizado hasta este momento el escenario en el cual se utilizan variables categóricas como variables independientes (sexo, estado civil, cercanía a un lugar, etc.). ¿Qué pasa si en lugar de utilizar las variables categóricas como variables explicativas, quisiéramos explicarlas a partir de otras? Por ejemplo, qué explica que un adulto haya terminado el colegio o no, o qué explica que una persona entre o no al mercado laboral. En este caso, nuestra variable dependiente es una variable binaria, si o no, que puede ser codificada como 1 y 0 y quisiéramos explicarla a partir de otras variables.
+
+$$
+y=\beta_0+\beta_1x_1+...+\beta_kx_k+u
+$$
+
+Si $E(u|\textbf{x})=0$, entonces
+
+$$
+E(u|\textbf{x})=\beta_0+\beta_1x_1+...+\beta_kx_k
+$$
+
+Ahora, $y\in\{0, 1\}$, entonces lo que se quiere modelar es $P(y=1|\textbf{x})$. Entonces
+
+$$
+P(y=1|\textbf{x})=E(u|\textbf{x})
+$$
+
+$$
+P(y=1|\textbf{x})=\beta_0+\beta_1x_1+...+\beta_kx_k
+$$
+
+De manera equivalente $P(y=0|\textbf{x})=1-P(y=1|\textbf{x})$. $\beta_j$ mide el cambio en la probabilidad de suceso cuando $x_j$ cambia.
+
+$$
+\Delta P(y=1|\textbf{x})=\beta_j\Delta x_j
+$$
+
+```{r}
+mpl <- lm(inlf ~ kidslt6 + huswage, data=mroz)
+mpl1 <- lm(inlf ~ kidslt6, data=mroz)
+
+modelsummary(list(mpl, mpl1))
+```
+
+La interpretación es exactamente la misma que se ha hecho hasta el momento. Este modelo es ampliamente utilizado en economía, desafortunadamente posee varios problemas:
+
+1.  Las probabilidades predichas pueden estar por debajo de 0 o por encima de 1, hecho que por definición no debería ser así.
+
+2.  Por definición, el modelo es heterocedástico.
+
+    $$
+    Var(y|\textbf{x})=p(\textbf{x})(1-p(\textbf{x}))
+    $$
+
+    Como se puede observar, la varianza depende de $\textbf{x}$. Para solucionarla puede utilizarse por mínimos cuadrados ponderados estimando la función $h_i$ de la forma
+
+    $$
+    \hat{h}_i=\hat{y}_i(1-\hat{y}_i)
+    $$
+
+    O también se pueden utilizar errores robustos a la heterocedasticidad.
+
+## Modelo logit y probit
+
+Para franquear estos problemas existen alternativas que requieren mayor atención, implican mayor dificultad pero traen consigo mayor precisión. Así como en el modelo anterior, se modelará $P(y=1|\textbf{x})$ pero a diferencia de asumir una función lineal, se utilizará una función $G$ evaluada en la relación lineal
+
+$$
+P(y=1|\textbf{x})=G(\beta_0+\beta_1x_1+...+\beta_kx_k)=G(\textbf{X}\beta)
+$$
+
+La función $G$ estará acotada entre 0 y 1.
+
+$$
+0 < G(z)<1
+$$
+
+Existen diferentes funciones que pueden garantizar esta condición pero son dos las más utilizadas en econometría: la función logística y la función de distribución acumulada normal
+
+### Modelo logit
+
+$$
+G(z)=\frac{e^z}{1+e^z}=\Lambda(z)
+$$
+
+Esta función se conoce como la **función logística.**
+
+### Modelo probit
+
+$$
+G(z)=\int_{-\infty}^z\phi(v)dv\equiv \Phi(z)
+$$
+
+$$
+\phi(z)=\frac{1}{\sqrt{2\pi}}e^{-z^2/2}
+$$
+
+```{r}
+x <- sort(runif(150, -5, 5))
+logit <- function (x){
+  return(exp(x)/(1 + exp(x)))
+}
+normal <- pnorm(x)
+logit <- logit(x)
+
+par(mfrow=c(1, 2))
+plot(x, logit, type='l')
+plot(x, normal, type='l')
+```
+
+El modelamiento utilizando estas funciones se hace a través de variables latentes. Suponga que se tiene una variable latente $y^*$ definida como
+
+$$
+y^*=\textbf{X}\beta+e
+$$
+
+$$
+y=1[y^*>0]
+$$
+
+$1[\cdot]$ es una función indicadora en la que $y=1$ si $y^*>0$ y $y=0$ si $y^*\leq0$. El término $e$ es independiente de $x$ y sigue una distribución logit o normal. En este contexto
+
+$$
+P(y=1|\textbf{x})=P(y^*>0|\textbf{x})=P(\textbf{X}\beta + e>0|\textbf{x})
+$$
+
+$$
+=P(e>-\textbf{X}\beta|\textbf{x})=1-G(-\textbf{X}\beta)=G(\textbf{X}\beta)
+$$
+
+En síntesis $P(y=1|\textbf{x})=G(\textbf{X}\beta)$.
+
+### Interpretación
+
+La signo de los coeficientes representa la dirección, sin embargo, no tiene la misma interpretación de una regresión lineal porque justamente eso cambia: la relación no es lineal.
+
+#### Continua
+
+$$
+\frac{\partial p(\textbf{x})}{\partial x_j}=\frac{\partial G(z)}{\partial x_j}\beta_j
+$$
+
+#### Discreta (binaria)
+
+$$
+G(\beta_0+\beta_1+\beta_2x_2+...+\beta_kx_k)-G(\beta_0+\beta_2x_2+...+\beta_kx_k)
+$$
+
+#### Discreta (multinomial)
+
+$$
+G(\beta_0+\beta_1(c_k+1)+\beta_2x_2+...+\beta_kx_k)-G(\beta_0+\beta_1x_k+\beta_2x_2+...+\beta_kx_k)
+$$
+
+Es posible también utilizar otras formas funcionales como en el modelo lineal.
+
+### Estimación
+
+Dada la condición no lineal de las funciones $G$ , no se pueden estimar los coeficientes a través de mínimos cuadrados ordinarios. Pero se puede estimar a través de máxima verosimilitud. La función de densidad en este caso sería
+
+$$
+f(y|x_i;\beta)=[G(x_i\beta)]^y[1-G(x_i\beta)]^{1-y},\hspace{0.3cm}y=0,1
+$$
+
+Aplicando logaritmo natural
+
+$$
+\ell_i(\beta)=y_ilog[G(x_i\beta)]+(1-y_i)log[1-G(x_i\beta)]
+$$
+
+La función de log verosimilitud quedaría definido como
+
+$$
+\mathcal{L}=\sum_{i=1}^n\ell(\beta)
+$$
+
+$\hat{\beta}$ maximiza esta función. Desafortunadamente, a diferencia del estimador de MCO, no se llega a una solución cerrada y es necesaria una aproximación computacional que puede no converger (llegar a un valor específico). Esto se puede deber entre otras razones a:
+
+1.  Pocos valores para $y=1$ o $y=0$.
+2.  Demasiados regresores.
+3.  Regresores que explican demasiado bien a $y$.
+4.  Pocas observaciones.
+5.  Valor inicial de la iteración es problemática.
+
+El estimador de máxima verosimilitud es consistente y asintóticamente normal y efeiciente.
+
+### Porcentaje de aciertos
+
+Si se quiere calcular el porcentaje de aciertos, se puede hacer de la siguiente manera para todos los modelos
+
+$$
+MPL:\hat{y}_i=X\hat{\beta}
+$$
+
+$$
+EMV:\hat{y}_i=G(X\hat{\beta})
+$$
+
+$$
+\tilde{y}_i=\begin{cases}
+1 & \hat{y}_i\geq0.5\\
+0 & \hat{y}_i<0.5
+\end{cases}
+$$
+
+$\tilde{y}_i$ solo puede ser 0 o 1 como $y_i$.
+
+```{r}
+mpl <- lm(inlf ~ educ + exper + kidslt6, 
+              data = mroz)
+logitm <- glm(inlf ~ educ + exper + kidslt6, 
+              data = mroz, 
+              family = binomial(link = "logit"))
+probitm <- glm(inlf ~ educ + exper  + kidslt6, 
+              data = mroz, 
+              family = binomial(link = "probit"))
+
+models <- list("mpl" = mpl,
+               "logit" = logitm,
+               "probit" = probitm)
+
+modelsummary(models, stars=T, gof_map = c("r.squared", "r2.pseudo"))
+```
+
+### Pseudo-R squared
+
+$$
+pseudo-R^2=1-\frac{\mathcal{L}_{UR}}{\mathcal{L}_0}
+$$
+
+Dada la naturaleza del modelo y la estimación, no se puede obtener un $R^2$ como el que se ha calculado hasta el momento. Sin embargo, se puede obtener un pseudo- $R^2$ que se interpreta de la misma forma.
+
+### Inferencia
+
+La inferencia se puede desarrollar de la misma forma a como se ha hecho anteriormente. Los estadísticos t son válidos así como los intervalos de confianza. Adicionalmente, el análisis de endogeneidad y de sesgo también son válidos. No obstante, si se quiere probar restricciones de exclusión, la prueba es diferente a la realizada con MCO.
+
+### Test de restricciones de exclusión
+
+1.  Correr el modelo restringido y el modelo no restringido.
+
+2.   Calcular el $LR$ o likelihood ratio
+
+    $$
+    LR=2(\mathscr{L}_{UR}-\mathscr{L}_R)
+    $$
+
+3.  Este estadístico sigue una distribución $\chi^2_q$ y se tiene la misma hipótesis nula trabajada anteriormente.
+
+```{r}
+res <- glm(inlf ~ educ + exper , 
+              data = mroz, 
+              family = binomial(link = "logit"))
+unres <- glm(inlf ~ educ + exper + kidslt6, 
+              data = mroz, 
+              family = binomial(link = "logit"))
+lrtest(res, unres)
+```
+
+### 
+
+## Modelo de Poisson
+
+### Motivación
+
+La principal razón por la cual podemos estar motivados a utilizar la regresión de Poisson es porque podemos enfrentarnos a variables dependientes no negativas: número de arrestos, número de niños de una familia, número de patentes de una empresa, etc. En todos estos casos, la varaible dependiente no toma valores negativos y tampoco es continua. Se podría utilizar MCO pero esto tendría limitaciones: se podrían obtener predicciones menores a 0, no se podría tomar logaritmo natural de las variables por la presencia del 0, entre otras.
+
+El modelo de regresión básico de Poisson asume que $y$ dado $\textbf{X}$ sigue una distribución de Poisson. La densidad de $y$ dado $\textbf{X}$ bajo el supuesto de Poisson está completamente determinada por la media condicional
+
+$$
+\mu(\textbf{X})\equiv E(y|\textbf{X})
+$$
+
+$$
+f(y|\textbf{X})=\frac{e^{-\mu(\textbf{X})}\mu(\textbf{X})^y}{y!},\hspace{0.3cm} y=0, 1, 2,...
+$$
+
+Dado un modelo paramétrico para $\mu(\textbf{X})$, como por ejemplo $e^{\textbf{X}\beta}$, y una muestra aleatoria, se podría obtener los estimadores de cuasi-máxima verosimilitud de los parámetros.
+
+$$
+p(y=h|\textbf{X})=\frac{e^{-e^{\textbf{X}\beta}}(e^{\textbf{X}\beta})^y}{y!},\hspace{0.3cm} h=0, 1, 2,...
+$$
+
+Dada una muestra aleatorio, la función de log-verosimilitud se puede construir de la forma
+
+$$
+\mathscr{L}(\beta)=\sum_{i=1}^n\ell_i(\beta)=\sum_{i=1}^n[ y_ix_i\beta-e^{x_i\beta}]
+$$
+
+El modelo de Posisson impone una restricción muy fuerte: la equidispersión.
+
+$$
+E(y)=Var(y)=\lambda
+$$
+
+Este supuesto se puede relajar un poco y asumir que la densidad no está completamente especificada. En este contexto si se utiliza Poisson MLE pero no se asume que la distribución de Poisson es completamente correcta, la estimación y análisis se conoce como estimación por cuasi-máxima verosimilitud.
+
+$$
+E(y|\textbf{X})\neq Var(y|\textbf{X})
+$$
+
+En este caso, se puede hacer un pequeño ajuste a los errores:
+
+$$
+Var(y|\textbf{X})=\sigma^2E(y|\textbf{X})
+$$
+
+Donde $\sigma^2>0$ es el ratio de varianza-media. Con este parámetro se pueden observar los siguientes escenarios
+
+$$
+\sigma^2\begin{cases}
+=1 & Var(y|\textbf{X}) = E(y|\textbf{X}) &equidispersión\\
+>1 & Var(y|\textbf{X}) > E(y|\textbf{X}) & sobredispersión\\
+< 1 & Var(y|\textbf{X}) < E(y|\textbf{X}) & subdispersión
+\end{cases}
+$$
+
+La interpretación de los coeficientes puede hacerse directamente como un modelo log-nivel. Sin embargo, si los cambios son muy grandes, puede plantearse mejor
+
+$$
+[e^{\beta_j}-1]*100
+$$
+
+```{r}
+regqp <- glm(narr86 ~ pcnv + 
+             avgsen + tottime +
+             ptime86 + qemp86 +
+             inc86 + black + hispan + born60, data=crime1, family = quasipoisson)
+regl <- lm(narr86 ~ pcnv + 
+             avgsen + tottime +
+             ptime86 + qemp86 +
+             inc86 + black + hispan + born60, data=crime1)
+regp <- glm(narr86 ~ pcnv + 
+             avgsen + tottime +
+             ptime86 + qemp86 +
+             inc86 + black + hispan + born60, data=crime1, family = poisson)
+
+models <- list("Lineal" = regl,
+               "Poisson" = regp,
+               "QPoisson" = regqp) #corrección a la violación del supuesto
+
+modelsummary(models, stars=TRUE)
+```
+
+### Inferencia
+
+Para hacer inferencia sobre los estimadores, puede llevarse a cabo lo mismo que se ha hecho hasta el momento. Solo habría que corregir por $\hat{\sigma}$ a los errores estándar obtenidos en la regresión. El modelo por defecto es heterocedástico, así que es necesario plantear una corrección para hacer el cálculo de este parámetro
+
+$$
+\hat{\sigma}^2=\frac{\sum_{i=1}^n \hat{u}_i^2/\hat{y}_i}{n-k-1}
+$$
+
+La división de los residuos al cuadrado entre los valores ajustados es la corrección por heterocedasticidad. Por defecto, con la family `quasipoisson`, esto queda corregido. Si se quieren llevar a cabo pruebas de restricciones de exclusión se puede utilizar el likelihood ratio que se vio anteriormente. Un pequeño ajuste sería necesario (dividir entre $\sigma^2$ al valor obtenido) y se llegaría al quasi-likelihood ratio.
