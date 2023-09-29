@@ -107,7 +107,7 @@ ggdag(dag_object) +
 
 ```{r}
 ols <- lm(lwage ~ educ + exper, data=wage2)
-iv <- ivreg(lwage ~ educ + exper | educ + feduc + meduc, data=wage2)
+iv <- ivreg(lwage ~ educ + exper |feduc + meduc + exper, data=wage2)
 
 models <- list("ols" = ols,
                "iv" = iv)
