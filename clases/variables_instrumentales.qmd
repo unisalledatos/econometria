@@ -107,7 +107,7 @@ ggdag(dag_object) +
 
 ```{r}
 ols <- lm(lwage ~ educ + exper, data=wage2)
-iv <- ivreg(lwage ~ educ + exper |feduc + meduc + exper, data=wage2)
+iv <- ivreg(lwage ~ educ + exper + I(exper ^ 2) |feduc + meduc + exper + I(exper ^2), data=wage2)
 
 models <- list("ols" = ols,
                "iv" = iv)
@@ -194,4 +194,20 @@ Es posible que tengamos más instrumentos de los que realmente necesitamos. Debe
 summary(iv, diagnostics = T)
 ```
 
-## 
+La ventaja de este test es que, si se rechaza la hipótesis nula, entonces la lógica llevada a cabo hasta este punto para seleccionar instrumentos debería ser revisada. Sin embargo, el test no nos dice cuáles de los instrumentos fallaron en el requerimiento de exogeneidad.
+
+#### Otro ejemplo
+
+```{r}
+ols <- lm(lwage ~ exper + I(exper ^ 2) + educ, data=mroz)
+iv <- ivreg(lwage ~ exper + I(exper ^ 2) + educ | exper + I(exper ^ 2) + motheduc + fatheduc + huseduc, data=mroz)
+
+models <- list("ols" = ols, 
+               "iv" = iv)
+
+modelsummary(models, stars=T)
+```
+
+```{r}
+summary(iv, diagnostics = T)
+```
