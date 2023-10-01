@@ -1,0 +1,193 @@
+---
+title: "Panel de Datos I"
+author: "Carlos Ortiz"
+format: html
+editor: visual
+---
+
+```{r echo=FALSE, warning=FALSE}
+library(wooldridge)
+library(modelsummary)
+library(tidyverse)
+library(plm)
+```
+
+## Cortes transversales agrupados
+
+Antes de entrar en materia con el estudio de datos de tipo panel, se trabajará con la posibilidad de observar distintas muestras de la población en diferentes momentos del tiempo. Este tipo de recolección de información es común en los países debido al costo al que se enfrentarían al intentar contactar en diferentes momentos del tiempo a la misma población (la **GEIH**, por ejemplo). La estructura de datos resultante de utilizar diferentes muestras tomadas en diferentes momentos del tiempo se conoce como **cortes transversales agrupados**. Esta estructura tiene algunas ventajas:
+
+1.  Muestras más grandes.
+2.  Mejores estimadores y pruebas estadísticas con más poder.
+
+Esto, sin embargo, viene con algunos costos. Se asume que las muestras son independientes entre sí y preferiblemente que están idénticamente distribuidas. Esto puede no cumplirse. A medida que pasa el tiempo, el comportamiento y las variables que describen a los individuos puede cambiar. Esto se puede solucionar permitiendo que cambie la pendiente y que cambie el intercepto.
+
+```{r}
+reg <- lm(kids ~ educ + age + agesq + black + east + northcen 
+          + west + farm + othrural + town + smcity + y74 + y76 + y78 + y80 + y82 + y84, data=fertil1)
+
+summary(reg)
+```
+
+En este ejemplo, los coeficientes obtenidos se interpretan exactamente de la misma manera. Estos se conocen como estimadores de MCO agrupados. Existe un elemento particular: las dummies incluidas para permitir el cambio en el intercepto muestra un cambio en la fertilidad a medida que pasan los años. Para este modelo la inferencia, la heterocedasticidad y las pruebas de hipótesis se pueden trabajar de la misma forma.
+
+```{r}
+reg <- lm(lwage ~ y85 + educ + y85:educ + exper + expersq + union + female + y85:female, data=cps78_85)
+
+summary(reg)
+```
+
+Otra forma en que se pueden utilizar los cortes transversales agrupados es, aprovechando las dummies de año, probar si existe un cambio estructural. Un **test de Chow** con cortes transversales agrupados:
+
+1.  Estimar el modelo restringido: MCO agrupados permitiendo diferentes interceptos temporales y obtener $SSR_r$.
+
+2.  Correr una regresión para los $T$ periodos y obtener $SSR_{ur}=SSR_1+SSR_2+...+SSR_T$.
+
+3.  Construir el estadístico $F$
+
+    $$
+    F=\frac{SSR_r-SSR_{ur}}{SSR_{ur}}\cdot\frac{n-T-Tk}{(T-1)k}
+    $$
+
+    Siendo $T$ el número de periodos, $k$ el número de variables independientes que no incluyen los interceptos ni las variables dummy de tiempo y $n=n_1+n_2+…+n_T$.
+
+#### Evaluación de políticas
+
+Los cortes transversales agrupados son útiles para evaluar el impacto de un cierto evento o política. Un diseño de identificación que entra dentro del marco de los resultados potenciales de Rubin es el de diferencias en diferencias. En este se busca capturar el efecto de un tratamiento (política o intervención) aprovechando la dimensión temporal. En el siguiente ejemplo se ajustan tres regresiones: una con solo datos de 1978, otra con solo datos de 1981 y una en la que se utiliza el enfoque de diferencias en diferencias para capturar el efecto de la construcción de un incinerador de basura en los precios de una vivienda.
+
+```{r}
+
+reg2 <- lm(rprice ~ nearinc, data=filter(kielmc, year==1981))
+reg1 <- lm(rprice ~ nearinc, data=filter(kielmc, year==1978))
+reg3 <- lm(rprice ~ y81 + nearinc + y81:nearinc, data=kielmc)
+
+models <- list("mco_1981" = reg2, 
+               "mco_1978" = reg1,
+               "did" = reg3)
+modelsummary(models, stars = T)
+```
+
+```{r echo=FALSE, warning=FALSE}
+treat_bef <- mean(filter(kielmc, nearinc==1 & y81 ==0)$rprice)
+treat_af <- mean(filter(kielmc, nearinc==1 & y81 ==1)$rprice)
+control_bef <- mean(filter(kielmc, nearinc==0 & y81 ==0)$rprice)
+control_af <- mean(filter(kielmc, nearinc==0 & y81 ==1)$rprice)
+
+plot(c(0, 1), 
+     c(control_bef, control_af), 
+     type='l', 
+     ylim=c(60000, 102000),
+     col = "darkblue",
+     ylab = "Real price",
+     xlab = "time",
+     main = "")
+lines(c(0, 1), 
+      c(treat_bef, treat_af), 
+      type='l',
+      col = "darkcyan")
+lines(c(0, 1), 
+      c(treat_bef, treat_bef+(control_af-control_bef)), 
+      type='l',
+      col = "darkred", lty = 2)
+
+legend("topleft", legend = c("Control", "Tratamiento", "Contrafactual"),
+       col = c("darkblue", "darkcyan", "darkred"),
+       lty=c(1, 1, 2))
+```
+
+$$
+\hat{\delta}_1=(\bar{y}_{1t}-\bar{y}_{1c})-(\bar{y}_{0t}-\bar{y}_{0c})
+$$
+
+$$
+\hat{\delta}_1=(\bar{y}_{1t}-\bar{y}_{0t})-(\bar{y}_{1c}-\bar{y}_{0c})
+$$
+
+## Panel de datos
+
+Hasta el momento se ha trabajado únicamente con datos de corte transversal: observar a un grupo de individuos, países, ciudades o empresas en un momento determinado del tiempo. Los modelos y métodos de estimación que se verán en esta ocasión se concentrarán en otra estructura de datos: los **datos longitudinales** o **panel de datos**. En esta estructura, se observan a las mismas unidades en diferentes momentos del tiempo. Esto representa algunas ventajas y desventajas.
+
+#### Ventajas de emplear panel de datos
+
+1.  Controlar la heterogeneidad individual.
+2.  Ofrecer datos más informativos, más variabilidad, menos colinealidad entre las variables, más grados de libertad y mayor eficiencia.
+3.  Mejor para estudiar dinámicas de ajuste.
+4.  Mejor para identificar y medir efectos que son simplemente no detectables en datos de sección cruzada o de series de tiempo.
+5.  Permiten probar y construir modelos de comportamiento más complicados.
+6.  Se pueden reducir los sesgos.
+
+#### Desventajas de emplear panel de datos
+
+1.  Problemas de recolección de información.
+2.  Distorciones de errores de medida
+3.  Problemas de selectividad.
+    1.  Auto selección.
+    2.  No respuesta.
+    3.  Attrition.
+4.  Dimensión temporal corta.
+5.  Dependencia de las secciones cruzadas.
+
+### Estimador de primeras diferencias
+
+Cuando se considera un conjunto de datos longitudinales se puede partir de la siguiente ecuación
+
+$$
+y_{it}=\beta_0+\delta_0d2_t+\beta_1x_{it}+a_i+u_{it}, \hspace{0.3cm}t=1, 2
+$$
+
+donde $d2_t$ es igual a 0 cuando $t=1$ y es igual a a1 cuando $t=2$. El componente $a_i$ se conocen como efectos no observados consistentes en el tiempo o efectos fijos. Por último, $u_{it}$ es el error idionsincrático. Este modelo se conoce coo **modelo de efectos fijos**. La pregunta que surge es ¿cómo estimar $\beta_1$? Se puede utilizar POLS, sin embargo, debe cumplirse que $Cov(a_i, x_{it})=0$, de lo contrario el estimador estaría sesgado. Un sesgo conocido como sesgo de heterogeneidad. La razón por la cual se usa panel es para permitir esta correlación. Se puede partir el modelo en dos ecuaciones
+
+$$
+y_{i2}=(\beta_0+\delta_0)+\beta_1x_{i2}+a_i+u_{i2}, \hspace{0.3cm}(t=2)
+$$
+
+$$
+y_{i1}=\beta_0+\beta_1x_{i1}+a_i+u_{i1}, \hspace{0.3cm}(t=1)
+$$
+
+Para eliminar el efecto no observado se puede restar una de la otra
+
+$$
+y_{i2}-y_{i1}=\delta_0+\beta_1(x_{i2}-x_{i1})+(u_{i2}-u_{i1})
+$$
+
+$$
+\Delta y_i=\delta_0+\beta_1\Delta x_i+\Delta u_i
+$$
+
+El estimador de $\beta_1$ se conoce como el estimador de primeras diferencias.
+
+```{r}
+reg1 <- lm(crmrte ~ unem, data=filter(crime2, year==87))
+reg2 <- lm(crmrte ~ d87 + unem, data=crime2)
+reg3 <- plm(crmrte ~ unem, data = crime2, index = c("area","year"), model = "fd")
+
+models <- list("ols_1987" = reg1,
+               "pols" = reg2,
+               "fd" = reg3)
+
+modelsummary(models, stars = T)
+```
+
+### Análisis de política con panel de datos
+
+Este estimador de primeras diferencias puede aplicarse al contexto de evaluación de política pública.
+
+```{r}
+reg <- plm(lscrap ~ grant, data=filter(jtrain, year == 1987 | year == 1988), index=c("fcode", "year"), model="fd")
+summary(reg)
+```
+
+### Organizar panel
+
+Para poder hacer un seguimiento controlado a los datos longitudinales se recomienda que se agrupen primero por individuo y después por año. Es decir, si se tienen 10 individuos y se observa a cada uno durante dos años, la primera observación del dataset sería el individuo 1 en el año 1, después el individuo 1 en el año 2, después el individuo 2 en el año 1, el individuo 2 en el año 2 y así sucesivamente.
+
+### Diferenciar más de dos periodos
+
+Así como se diferencias dos periodos, se pueden incluir más periodos en el análisis. ¿Cómo funciona?. Si se tienen cuatro periodos, al cuarto se le resta el tercero, al tercero se le resta el segundo, al segundo el primero y el primero queda tal y como está en el dataset ya que no tiene qué restarle.
+
+```{r}
+reg <- plm(lcrmrte ~ d83 + d84 + d85 + d86 + d87 + lprbarr + lprbconv + lprbpris + lavgsen + lpolpc,
+           model="fd", index=c("county", "year"), data=crime4)
+
+summary(reg)
+```

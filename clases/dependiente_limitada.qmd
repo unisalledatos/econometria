@@ -5,12 +5,13 @@ format: html
 editor: visual
 ---
 
-```{r}
+```{r warning=FALSE, echo=FALSE}
 library(wooldridge)
 library(tidyverse)
 library(cowplot)
 library(modelsummary)
 library(lmtest)
+library(mfx)
 ```
 
 ## Modelo de probabilidad lineal
@@ -245,11 +246,13 @@ La inferencia se puede desarrollar de la misma forma a como se ha hecho anterior
 
 1.  Correr el modelo restringido y el modelo no restringido.
 
-2.   Calcular el $LR$ o likelihood ratio
+2.  Calcular el $LR$ o likelihood ratio
 
-    $$
-    LR=2(\mathscr{L}_{UR}-\mathscr{L}_R)
-    $$
+```         
+$$
+LR=2(\mathscr{L}_{UR}-\mathscr{L}_R)
+$$
+```
 
 3.  Este estadístico sigue una distribución $\chi^2_q$ y se tiene la misma hipótesis nula trabajada anteriormente.
 
@@ -263,7 +266,26 @@ unres <- glm(inlf ~ educ + exper + kidslt6,
 lrtest(res, unres)
 ```
 
-### 
+### Retomando la interpretación
+
+Interpretar los coeficientes de los modelos no lineales con variable dependiente binomial no es tarea fácil por su propia forma funcional. A diferencia del modelo de regresión lineal, donde una derivada era suficiente, en este caso la derivada incluye a TODAS las variables independientes, complicando la interpretación. Sin embargo, se pueden utilizar dos métodos:
+
+1.  Average marginal effect: tomar el efecto para cada persona en la muestra y calcular el promedio.
+2.  Marginal effect at the mean: tomar la media de cada una de las variables e inyectar esta media en la función para el cálculo del efecto marginal.
+
+#### AME
+
+```{r}
+probitmfx(probitm, atmean = FALSE, data = mroz)
+logitmfx(probitm, atmean = FALSE, data = mroz)
+```
+
+#### MEM
+
+```{r}
+probitmfx(probitm, atmean = TRUE, data = mroz)
+logitmfx(probitm, atmean = TRUE, data = mroz)
+```
 
 ## Modelo de Poisson
 
