@@ -159,11 +159,13 @@ El estimador de $\beta_1$ se conoce como el estimador de primeras diferencias.
 ```{r}
 reg1 <- lm(crmrte ~ unem, data=filter(crime2, year==87))
 reg2 <- lm(crmrte ~ d87 + unem, data=crime2)
-reg3 <- plm(crmrte ~ unem, data = crime2, index = c("area","year"), model = "fd")
+reg3 <- plm(crmrte ~ d87 + unem, data=crime2, index = c("area","year"), model = "pooling")
+reg4 <- plm(crmrte ~ unem, data = crime2, index = c("area","year"), model = "fd")
 
 models <- list("ols_1987" = reg1,
                "pols" = reg2,
-               "fd" = reg3)
+               "pols_plm" = reg3,
+               "fd" = reg4)
 
 modelsummary(models, stars = T)
 ```
@@ -183,11 +185,35 @@ Para poder hacer un seguimiento controlado a los datos longitudinales se recomie
 
 ### Diferenciar más de dos periodos
 
-Así como se diferencias dos periodos, se pueden incluir más periodos en el análisis. ¿Cómo funciona?. Si se tienen cuatro periodos, al cuarto se le resta el tercero, al tercero se le resta el segundo, al segundo el primero y el primero queda tal y como está en el dataset ya que no tiene qué restarle.
+Así como se diferencias dos periodos, se pueden incluir más periodos en el análisis. ¿Cómo funciona?. Si se tienen cuatro periodos, al cuarto se le resta el tercero, al tercero se le resta el segundo, al segundo el primero y el primero queda tal y como está en el dataset ya que no tiene qué restarle. Después se procede a correr POLS.
 
 ```{r}
 reg <- plm(lcrmrte ~ d83 + d84 + d85 + d86 + d87 + lprbarr + lprbconv + lprbpris + lavgsen + lpolpc,
            model="fd", index=c("county", "year"), data=crime4)
 
 summary(reg)
+```
+
+La inferencia para POLS es la misma a como se ha utilizado hasta el momento, incluyendo correcciones por heterocedasticidad. Para primeras diferencias la inferencia usual es válida asintóticamente bajo homocedasticidad.
+
+### Variables instrumentales y panel de datos
+
+Es posible introducir variables instrumentales si se considera que aquello no observado no solo cambia para el individuo sino también en el tiempo.
+
+$$
+log(scrap_{it})=\beta_0+\delta_0d88_t+\beta_1hrsemp_{it}+a_i+u_{it},\hspace{0.3cm}t=1,2
+$$
+
+$$
+\Delta log(scrap_i)=\delta_0+\beta_1\Delta hrsemp_i+\Delta u_i
+$$
+
+```{r}
+fst_st <- plm(hrsemp ~ grant, data=filter(jtrain, year == 1987 | year == 1988), index=c("fcode", "year"), model="fd")
+snd_st <- plm(lscrap ~ hrsemp | grant , data=filter(jtrain, year == 1987 | year == 1988), index=c("fcode", "year"), model="fd")
+
+models <- list("first_st" = fst_st,
+               "second_st" = snd_st)
+
+modelsummary(models, stars = T)
 ```
