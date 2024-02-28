@@ -1,0 +1,251 @@
+---
+title: "Temas pendientes"
+author: "Carlos Ortiz"
+format: html
+editor: visual
+---
+
+# Temas pendientes
+
+```{r}
+library(wooldridge)
+```
+
+## Efecto de una variable adicional en el $R^2$ 
+
+```{r}
+reg <- lm(wage ~ educ, data = wage1)
+summary(reg)
+```
+
+```{r}
+reg <- lm(wage ~ educ + exper, data = wage1)
+summary(reg)
+```
+
+```{r}
+reg <- lm(wage ~ educ + exper + tenure, data = wage1)
+summary(reg)
+```
+
+## Formas funcionales
+
+| Modelo      | Interpretación                     |
+|-------------|------------------------------------|
+| Nivel-Nivel | $\Delta y=\beta_1\Delta x$         |
+| Nivel-Log   | $\Delta y=(\beta_1/100)\%\Delta x$ |
+| Log-Nivel   | $\%\Delta y=(100\beta_1)\Delta x$  |
+| Log-Log     | $\%\Delta y=\beta_1\%\Delta x$     |
+
+```{r}
+reg <- lm(price ~ sqrft, data = hprice1)
+summary(reg)
+```
+
+$$
+price_i=\beta_0+\beta_1 sqrft_i +u_i
+$$
+
+```{r}
+reg <- lm(price ~ lsqrft, data = hprice1)
+summary(reg)
+```
+
+$$
+price_i=\beta_0+\beta_1 lsqrft_i +u_i
+$$
+
+```{r}
+reg <- lm(lprice ~ sqrft, data = hprice1)
+summary(reg)
+```
+
+$$
+lprice_i=\beta_0+\beta_1 sqrft_i +u_i
+$$
+
+```{r}
+reg <- lm(lprice ~ lsqrft, data = hprice1)
+summary(reg)
+```
+
+$$
+lprice_i=\beta_0+\beta_1 lsqrft_i +u_i
+$$
+
+## Teorema Frish-Waugh-Lowell
+
+$$
+\hat{\beta}_1=\frac{\sum_{i=1}^n\hat{r}_{i1}y_i}{\sum_{i=1}^n\hat{r}_{i1}^2}
+$$
+
+```{r}
+reg <- lm(wage ~ educ + exper + tenure, data=wage1)
+summary(reg)
+```
+
+```{r}
+
+reg_wage <- lm (educ ~ exper + tenure, data = wage1)
+resids <- resid(reg_wage)
+
+reg2 <- lm(wage ~ resids, data = wage1)
+summary(reg2)
+```
+
+## Sobrespecificar y subespecificar
+
+### Sobrespecificar
+
+Suponga el siguiente modelo
+
+$$
+y=\beta_0+\beta_1x_1+\beta_2x_2+\beta_3x_3+u
+$$
+
+Este modelo satisface los primeros cuatro supuestos (sin contar homocedasticidad). Sin embargo, $x_3$ no tiene efecto sobre $y$. Es decir, $\beta_3=0$. En este sentido
+
+$$
+\mathbb{E}(y|x_1,x_2,x_3)=\mathbb{E}(y|x_1, x_2)=\beta_0+\beta_1x_1+\beta_2x_2
+$$
+
+Debido a que no sabemos que $\beta_3=0$, incluimos $x_3$ en el modelo:
+
+$$
+\hat{y}=\hat{\beta}_0+\hat{\beta}_1x_1+\hat{\beta}_2x_2+\hat{\beta}_3x_3
+$$
+
+En términos de insesgamiento, no hay efecto sobre $\hat{\beta}_1$ ni $\hat{\beta}_2$. Incluir una o más variables irrelevantes en un modelo de regresión múltiple no afecta el sesgo de los estimadores de MCO, sino que tiene efectos en las varianzas de los estimadores. Esto tiene una relación directa con la siguiente ecuación
+
+$$
+\text{Var}(\hat{\beta}_j)=\frac{\sigma^2}{\sum (x_{ij}-\bar{x}_j)^2(1-R^2_{x_j})}
+$$
+
+```{r}
+x1 <- rnorm(500, mean = 20, sd = 3)
+x2 <- rnorm(500, mean = 3, sd = 5)
+x3 <- rnorm(500, mean = 12, sd = 6)
+x4 <- rnorm(500, mean = 8, sd = 2)
+e <- rnorm(500, mean = 0, sd = 1)
+
+y <- 10 + 4 * x1 + 2 * x2 + e
+
+reg <- lm(y ~ x1 + x2)
+summary(reg)
+```
+
+```{r}
+reg <- lm(y ~ x1 + x2 + x3)
+summary(reg)
+```
+
+```{r}
+reg <- lm(y ~ x1 + x2 + x3 + x4)
+summary(reg)
+```
+
+No parece haber ningún problema.
+
+```{r}
+means <- c(20, 3, 12, 8)
+stds <- c(3, 5, 6, 2)
+stds <- diag(stds)
+
+corr_mat <- rbind(c(1,   0.4,0.7, 0.8),
+                  c(0.4, 1,   0.6,0.5),
+                  c(0.7,0.6, 1. ,0.4),
+                  c(0.8,0.5, 0.4,  1))
+cov_mat <- stds %*% corr_mat %*% stds
+cov_mat
+```
+
+```{r}
+X <- cbind(x1, x2, x3, x4)
+cm <- chol(cov_mat) #cholesky
+X <- X %*% cm 
+cor(X)
+```
+
+```{r}
+y <- 10 + 4 * X[, 1] + 2 * X[, 2] + e
+reg <- lm(y ~ X[, 1] + X[, 2])
+summary(reg)
+```
+
+```{r}
+reg <- lm(y ~ X[, 1] + X[, 2] + X[, 3])
+summary(reg)
+```
+
+```{r}
+reg <- lm(y ~ X[, 1] + X[, 2] + X[, 3] + X[, 4])
+summary(reg)
+```
+
+El error estándar sube conforme se suman más variables irrelevantes.
+
+### Subespecificar
+
+Partimos del modelo
+
+$$
+y=\beta_0+\beta_1x_1+\beta_2x_2+u
+$$
+
+y asumimos que se cumplen los primeros cuatro supuestos (sin homocedasticidad). El interés está en estimar $\beta_1$. Ahora, supongamos que $x_2$ no es observable o no se puede medir. En ese caso, al estimar el modelo se obtendrá la siguiente ecuación
+
+$$
+\tilde{y}=\tilde{\beta}_0+\tilde{\beta}_1x_1
+$$
+
+Donde $\tilde{\beta}_1$ hace referencia un estimador de $\beta_1$ que proviene de un modelo subespecificado. Para hacerlo más práctico, parata del modelo
+
+$$
+wage=\beta_0+\beta_1 educ+\beta_2 abil +u
+$$
+
+Dado que la variable $abil$ no es observada, se debe estimar el siguiente modelo
+
+$$
+wage=\beta_0+\beta_1educ+v
+$$
+
+donde $v=\beta_2 abil +u$. Se tiene la siguiene relación algebraica que permite identificar la dirección del sesgo
+
+$$
+\tilde{\beta}_1=\hat{\beta}_1+\hat{\beta}_2\tilde{\delta}_1
+$$
+
+$$
+\text{Bias}(\tilde{\beta}_1)=\mathbb{E}(\tilde{\beta}_1)-\beta_1=\beta_2\tilde{\delta}_1
+$$
+
+Calculando $\tilde{\beta}_1$
+
+```{r}
+reg <- lm(y ~ X[, 1])
+summary(reg)
+```
+
+Calculando $\tilde{\delta}_1$
+
+```{r}
+reg <- lm(X[, 2] ~ X[, 1])
+summary(reg)
+```
+
+Calculando $\hat{\beta}_1$ y $\hat{\beta}_2$
+
+```{r}
+reg <- lm(y ~ X[, 1] + X[, 2])
+summary(reg)
+```
+
+```{r}
+4.011256 + 2.004765 *  0.62141
+```
+
+|             | Corr(x1, x2) \> 0 | Corr(x1, x2) \< 0 |
+|-------------|-------------------|-------------------|
+| $\beta_2>0$ | POSITIVE BIAS     | NEGATIVE BIAS     |
+| $\beta_2<0$ | NEGATIVE BIAS     | POSITIVE BIAS     |
