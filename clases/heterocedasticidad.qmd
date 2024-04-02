@@ -158,7 +158,7 @@ $$
 Var(u_i|\vec{\textbf{x}}_i)=\sigma^2h(\vec{\textbf{x}}_i)=\sigma^2h_i
 $$
 
-Dado que $Var(u_i|\vec{\textbf{x}}_i)=E(u_i|\vec{\textbf{x}}_i))=\sigma^2h_i$, si se pondera a $u_i$ por $\sqrt{h_i}$, se tiene
+Dado que $Var(u_i|\vec{\textbf{x}}_i)=E(u_i^2|\vec{\textbf{x}}_i))=\sigma^2h_i$, si se pondera a $u_i$ por $\sqrt{h_i}$, se tiene
 
 $$
 E[(u_i/\sqrt{h_i})^2]=E[(u_i^2)]/h_i=\sigma^2h_i/h_i=\sigma^2
@@ -189,7 +189,7 @@ Con la prueba de Breusch-Pagan se asume que la heterocedasticidad es lineal, per
 1.  Obtener $\hat{u}^2$ de la regresión estándar y calcular $log(\hat{u}^2)$.
 2.  Regresar $log(\hat{u}^2)$ en $x_1,…,x_k$ y obtener los valores ajustados $\hat{g}=\hat{log(\hat{u}^2)}$.
 3.  Obtener $\hat{h}_i=e^{\hat{g}_i}$.
-4.  Tomar cada variable y dividirla entre $1/\sqrt{\hat{h}_i}$.
+4.  Tomar cada variable y dividirla entre $\sqrt{\hat{h}_i}$.
 5.  Correr la regresión con las variables transformadas.
 
 ```{r}
