@@ -1,0 +1,152 @@
+---
+title: "Inferencia causal"
+author: "Carlos Ortiz"
+format: html
+editor: visual
+---
+
+```{r}
+library(tidyverse)
+library(stargazer)
+```
+
+## Resultados potenciales
+
+## Regresión discontinua
+
+Simulación de datos
+
+```{r}
+dat <- tibble(
+  x = rnorm(1000, 50, 25)
+) |> mutate (
+  x = if_else(x <0, 0, x) 
+) |> filter(x < 100)
+
+dat <- dat |> mutate(
+  D = if_else(x > 50, 1, 0),
+  y1 = 25 + 0 * D + 1.5 * x+ rnorm(n(), 0, 20)
+)
+
+ggplot(aes(x, y1, colour=factor(D)), data = dat) +
+  geom_point(alpha = 0.5) + 
+  geom_vline(xintercept = 50, colour = "grey", linetype=2) + 
+  stat_smooth(method = "lm", se = F) +
+  labs(x = "Test score (X)", y = "Potential Outcome (Y1)")
+```
+
+Simulación de discontinuidad
+
+```{r}
+dat <- dat |>
+  mutate(
+    y2 = 25 + 40 * D + 1.5 * x + rnorm(n(), 0, 20) 
+  )
+
+ggplot(aes(x, y2, colour = factor(D)), data = dat) + 
+  geom_point(alpha = 0.5) +
+  geom_vline(xintercept = 50, colour = "grey", linetype = 2) +
+  stat_smooth(method = "lm", se = F) + 
+  labs(x = "Test score (X)", y = "Potential outcome (Y)")
+```
+
+
+Simulación de no linealidad
+
+```{r}
+dat <- tibble(
+  x = rnorm(1000, 100, 50)
+) |>
+  mutate(
+    x = case_when(x < 0 ~ 0, TRUE ~ x),
+    D = case_when(x > 140 ~ 1, TRUE ~ 0),
+    x2 = x*x,
+    x3 = x*x*x,
+    y3 = 10000 + 0 *D -100 * x + x2 + rnorm(1000, 0, 1000)
+  ) |> filter (x < 280)
+
+ggplot(aes(x, y3, colour = factor(D)), data = dat) +
+  geom_point(alpha = 0.2) + 
+  geom_vline(xintercept = 140, colour = "grey", linetype = 2) + 
+  stat_smooth(method = "lm", se = F) +
+  labs(x = "Test score (X)", y = "Potential Outcome (Y)")
+
+ggplot(aes(x, y3, colour = factor(D)), data = dat) + 
+  geom_point(alpha = 0.2) + 
+  geom_vline(xintercept = 140, colour = "grey", linetype = 2) +
+  stat_smooth(method = "loess", se = F) + 
+  labs(x = "Test score (X)", y = "Potential Outcome (Y)")
+```
+
+
+Simulación ajustando la función 
+
+```{r}
+dat <- tibble(
+  x = rnorm(1000, 100, 50)
+) |> mutate(
+  x = case_when(x < 0 ~ 0, TRUE ~ x),
+  D = case_when(x > 140 ~ 1, TRUE ~ 0),
+  x2 = x*x,
+  x3 = x*x*x,
+  y3 = 10000 + 0 * D - 100 * x + x2 + rnorm(1000, 0, 1000)
+) |> filter (x < 280)
+
+regression <- lm(y3 ~D*., data = dat)
+
+stargazer(regression, type = "text")
+
+ggplot(aes(x, y3, colour=factor(D)), data = dat) + 
+  geom_point(alpha = 0.2) + 
+  geom_vline(xintercept = 140, colour = "grey", linetype = 2) + 
+  stat_smooth(method = "lm", se = F) +
+  labs(x = "Test score (X)", y = "Potential Outcome (Y)")
+
+```
+
+
+### Identificación
+
+### Supuestos
+
+### Estimación 
+
+### Ejemplos
+
+### Bibliografía
+
+Thistelhwaite, Campbell (1960)
+
+Van Der Klaauw (2002)
+
+Cook (2008)
+
+Angrist, Lavy (1999)
+
+Black (1999)
+
+Hahn (2001)
+
+Hansen (2015)
+
+Hoekstra (2009)
+
+Card (2008)
+
+Almond et al (2010)
+
+Barreca (2011)
+
+Jacob, Lefgen (2004)
+
+
+
+## Diferencias en diferencias
+
+## Control sintético 
+
+Abadie, Gardeazabal (2003)
+Abadie et al (2010)
+Athey, Imbens (2017)
+Abadie et al (2015)
+Abadie (2021)
