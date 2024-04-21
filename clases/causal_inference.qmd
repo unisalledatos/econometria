@@ -12,6 +12,11 @@ library(stargazer)
 
 ## Resultados potenciales
 
+El problema de evaluación consiste en medir el impacto del programa (o tratamiento) sobre un conjunto de variables de resultado en un conjunto de individuos. Por ejempmlo, el efecto que tiene un programa de nutrición en los indicadores antropométricos. Se busca establecer la diferencia entre la variable de resultado del individuo participante en el programa en presencia del programa y la variable de resultado de ese individuo en ausencia del programa. Esta diferencia es lo que se conoce como efecto del tratamiento o programa.
+
+> El problema fundamental de la evaluación de impacto es que no podemos ver ambos resultados en el mismo individuo.
+
+El marco teórico estándar para formalizar el problema de la evaluación de impacto se basa en el modelo de *resultado potencial* 
 ## Regresión discontinua
 
 Simulación de datos
