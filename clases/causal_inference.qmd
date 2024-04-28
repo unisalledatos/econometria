@@ -9,6 +9,7 @@ editor: visual
 library(tidyverse)
 library(stargazer)
 library(tidysynth)
+library(ggplot2)
 ```
 
 ## Resultados potenciales
@@ -244,13 +245,27 @@ Formalmente, un control sintético puede ser representado como un vector $J\time
 $$
 \hat{Y}_{1t}^N=\sum_{j=2}^{J+1}w_jY_{jt}, \hspace{0.5cm}\hat{\tau}_{1t}=Y_{1t}-\hat{Y}_{1t}^N
 $$
-Para evitar extrapolación (overfitting), los pesos se restringen a que sean no negativos y que su suma de 1. Esto va a provocar, además, que no todos los donantes aporten para la construcción del control sintético.
+Para evitar extrapolación (overfitting), los pesos se restringen a que sean no negativos y que su suma de 1. Esto va a provocar, además, que no todos los donantes aporten para la construcción del control sintético. La pregunta que surge es ¿cómo deberían ser seleccionados o calculados estos pesos? Abadie et. al (2003) y Abadie et. al (2010) proponen:
+
+> "Elegir $w_2,...,2_{J+1}$ de tal forma que el control sintético resultante se parezca lo más posible a los valores preintervención de las variables predictoras para la unidad tratada." 
+
+Esto es, seleccionar $\mathbf{W}^*=(w_2^*,...,w_{J+1}^*)'$ que minimice
+
+$$
+||\mathbf{X}_1-\mathbf{X}_0\mathbf{W}|| = \left(\sum_{h=1}^kv_h(X_{h1}-w_2X_{h2}-...-w_{J+1}X_{hJ+1})^2\right)^{1/2}
+$$
+sujeto a que los pesos no sean negativos y que su suma sea 1. El efecto estimado del tratamiento para la unidad tratada en el tiempo $t=T_0+1,...,T$ es
+
+$$
+\hat{\tau}_{1t}=Y_{1t}-\sum_{j=2}^{J+1}w_j^*Y_{jt}
+$$
+Las constantes positivas $v_1,...,v_k$ reflejan la importancia relativa de los valores de cada una de las $k$ predictoras para la unidad tratada $X_{11},...,X_{k1}$ en el control sintético.
 
 
 
+### Un ejemplo: Abadie et. al (2010)
 
-
-
+La legislación antitabaco tiene una larga historia en Estados Unidos, pudiéndose ir hasta 1893, cuando Washington prohibió la venta de cigarrillos. En un principio, las motivaciones legales eran meramente morales y posteriormente de salud. En 1988, a partir de una iniciativa ciudadana, se propuso la "Proposition 99" a través de la cual se imponía un impuesto de 25 centavos sobre cada paquete de cigarrillo en el estado de California. El consumo se redujo, aunque podría ser muy optimista atribuirselo únicamente a la reforma. La pregunta es, como siempre, ¿Qué hubiera pasado con el consumo de cigarrillos en ausencia de la "Proposition 99"?
 
 ```{r}
 data("smoking")
@@ -259,6 +274,23 @@ smoking |>
   dplyr::glimpse()
 ```
 
+Veamos qué pasó.
+
+```{r}
+test <- smoking |> filter(state=="California")  |>
+  select(c("year", "cigsale"))
+
+
+ggplot(test, aes(x = year, y = cigsale)) +
+  geom_line(color = "gray", size = 0.4) + 
+  geom_point(color = "gray") + 
+  geom_vline(xintercept = 1989, linetype = "longdash", color = "black") +
+  labs(x = "year", y = "cigsale", title = "Time series of the observed cigsale") +
+  theme_minimal()
+  
+```
+
+El gráfico muestra una tendencia que puede hacernos pensar que con o sin "Proposition 99", las ventas de tabaco se habrían disminuido. ¿Tuvo algún impacto la "Proposition" o era mejor no gastar esos recursos? 
 
 ```{r}
 smoking_out <-
@@ -266,28 +298,29 @@ smoking_out <-
   smoking %>%
   
   # initial the synthetic control object
-  synthetic_control(outcome = cigsale, # outcome
-                    unit = state, # unit index in the panel data
-                    time = year, # time index in the panel data
-                    i_unit = "California", # unit where the intervention occurred
-                    i_time = 1988, # time period when the intervention occurred
-                    generate_placebos=T # generate placebo synthetic controls (for inference)
+  synthetic_control(outcome = cigsale, # variable de respuesta
+                    unit = state, # unidad para el panel
+                    time = year, # tiempo en el panel
+                    i_unit = "California", # unidad tratada
+                    i_time = 1988, # periodo de tratamiento
+                    generate_placebos=T # generar placebos para la inferencia
                     ) %>%
   
-  # Generate the aggregate predictors used to fit the weights
+  # Generar las variables para ajustar los pesos
   
-  # average log income, retail price of cigarettes, and proportion of the
-  # population between 15 and 24 years of age from 1980 - 1988
+  # log del ingreso promedio, precio retail de los cigarrillos, % población entre 15 - 24 años de 1980 a 1988
+
   generate_predictor(time_window = 1980:1988,
                      ln_income = mean(lnincome, na.rm = T),
                      ret_price = mean(retprice, na.rm = T),
                      youth = mean(age15to24, na.rm = T)) %>%
   
-  # average beer consumption in the donor pool from 1984 - 1988
+  # consumo promedio de cerveza del pool de donantes entre 1984 y 1988
+
   generate_predictor(time_window = 1984:1988,
                      beer_sales = mean(beer, na.rm = T)) %>%
   
-  # Lagged cigarette sales 
+  # rezagos de la venta de cigarrillos 
   generate_predictor(time_window = 1975,
                      cigsale_1975 = cigsale) %>%
   generate_predictor(time_window = 1980,
@@ -296,44 +329,103 @@ smoking_out <-
                      cigsale_1988 = cigsale) %>%
   
   
-  # Generate the fitted weights for the synthetic control
-  generate_weights(optimization_window = 1970:1988, # time to use in the optimization task
-                   margin_ipop = .02,sigf_ipop = 7,bound_ipop = 6 # optimizer options
+  # generar los pesos
+  generate_weights(optimization_window = 1970:1988, # periodo de tiempo para generar los pesos
+                   margin_ipop = .02,sigf_ipop = 7,bound_ipop = 6
   ) %>%
   
-  # Generate the synthetic control
+  # generar el control sintético
   generate_control()
 ```
 
+Ahora ya podemos ver los resultados
 
 ```{r}
 smoking_out %>% plot_trends()
 ```
 
+Observe que el control sintético pre-tratamiento va muy de cerca al comportamiento de la variable de respuesta de la unidad tratada observada y justo después del tratamiento se abre. Esa diferencia entre el control y el tratamiento es el efecto de la "Proposition 99". Si calculamos la diferencia es aún más evidente. 
+
 ```{r}
 smoking_out %>% plot_differences()
 ```
 
+La diferencia va alrededor del 0 y cuando se aplica el tratamiento se observa una divergencia entre lo observado y el control sintético. Podemos observar también qué estados tuvieron mayor participación y qué variables tuvieron mayor relevancia.
+
 ```{r}
 smoking_out %>% plot_weights()
 ```
+
+Para después comparar qué tan parecido es, en las variables, el control sintético (la California de mentiras) con California y los otros estados:
+
 ```{r}
 smoking_out %>% grab_balance_table()
 ```
 
-```{r}
-smoking_out %>% plot_placebos()
-```
+### Inferencia
+
+Abadie et. al (2010) proponen una forma de inferencia basada en métodos de permutación. En su versión más simple el efecto de la intervención es estimado separadamente para cada una de las unidades de la muestra. 
+
+Considere el caso de una sola unidad. Se puede obtener una distribución de permutaciones al reasignar iterativamente el tratamiento a las unidades en el pool de donantes y estimar "efectos placebo" en cada iteración. El efecto del tratamiento en la undiad afecta por la intervención se puede decir que es significativa si su magnitud es relativamente extrema con respecto a la distribución de permutaciones. Observemos esos efectos placebo.
 
 ```{r}
 smoking_out %>% plot_placebos(prune = FALSE)
 ```
 
+Un problema con esto es que si bien algunos tienen un buen ajuste pre-tratamiento, esto no aplica para todos y pueden observarse casos muy extremos.
+
+```{r}
+smoking_out %>% plot_placebos()
+```
+
+Aquí podemos observar mejor el comportamiento. A partir de esto, Abadie et. al (2010) proponen una alternativa a través de un estadístico de prueba que mide el ratio del ajuste de post-intervención relativo al ajuste de pre-intervención. Para $0\leqt_1\leqt_2\leq T$ y %j=\{1,...,J+1\}$ se tiene
+
+$$
+R_j(t_1, t_2) = \left(\frac{1}{t_2-t_1+1}\sum_{t=t_1}^{t_2}\left(Y_{jt}-\hat{Y}_{jt}^N\right)^2\right)^{1/2}
+$$
+
+Esto se conoce como la raíz del error cuadrático medio de la predicción (RMSPE, por sus siglas en inglés) del estimador del control sintético para la unidad $j$ y periods $t_1,...,t_2$. Donde $\hat{Y}_{jt}^N$ es el outcome en el periodo $t$ generado por el control sintético cuando la unidad $j$ es la unidad tratada y utilizando el resto de las $J$ unidades para la construcción del pool de donantes.  El ratio entre el RMSPE post-tratamiento y el RMSPE pre-tratamiento para la unidad $j$ es 
+
+$$
+r_j=\frac{R_j(T_0+1, T)}{R_j(1, T_0)}
+$$
+$r_j$ mide la calidad del ajuste del control sintético para la unidad $j$ en el periodo post-tratamiento, relativo a la calidad del ajuste en el periodo pre-tratamiento. Como se vio, una alternativa es eliminar aquellos placebo que tienen un comportamiento sustancialmente mayor que la unidad de interés en pretratamiento. Aquí podemos ver el valor de los ratios.
 ```{r}
 smoking_out %>% plot_mspe_ratio()
 ```
 
-### Idea central
+Un p-valor para el procedimiento de inferencia basado en la distribución de permutación de $r_j$ puede ser
+
+$$
+p = \frac{1}{J+1}\sum_{j=1}^{J+1}I_+(r_j-r_1)
+$$
+Donde $I_+(.)$ es una función indicador que devuelve uno para los argumentos no negativos y cero de otra forma.
+
+```{r}
+smoking_out %>% grab_significance()
+```
+Se puede observar que el ratio post/pre es mayor para California que para el resto. El p-valor es 0.02564103. No es producto del azar.
+
+### Check-list antes de emplear control sintético
+
+1. Tamaño del efecto (considerable) y volatilidad del resultado (filtros de suavizamiento).
+
+2. Pool de donantes:
+- No incluir unidades sometidas a tratamientos similares previamente a los de la unidad de interés.
+- Eliminar aquellas que hayan enfrentado grandes shocks.
+- Mantener unidades similares a la tratada.
+
+3. No anticipación. No reaccionar anticipadamente al efecto de tratamiento (puede ajustarse).
+
+4. No interferencia. No debe haber muchas consecuencias si el grupo de donantes cambia.
+
+5. Horizonte de tiempo. Amplio hacia adelante y hacia atrás.
+
+6. Se requiere el uso de datos agregados.
+
+### Bibliografía
+
+
 
 Abadie, Gardeazabal (2003)
 Abadie et al (2010)
