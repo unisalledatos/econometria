@@ -153,6 +153,7 @@ Esto implica que no existen discontinuidades en $\bar{Z}$ en la relación entre 
 
 Adcionalmente, se tiene el supuesto de no manipulación: no hay un salto en la función de densidad del instrumento $Z$ en el umbral $\bar{Z}$. Podemos ver este último en el siguiente gráfico de Baez et. al (2012).
 
+![Discontinuidades en la función de densidad]()
 
 
 ```{r}
