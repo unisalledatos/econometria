@@ -1,0 +1,52 @@
+---
+title: "Quiz"
+format: html
+editor: visual
+---
+
+## Conceptual
+
+1. Suponga una variable $y$ que depende de 3 variables independientes $X_1$, $X_2$ y $X_3$. Considere que hay una parte de y que no es observada. Trace un grafo y plantee la ecuación de regresión poblacional.
+2. Escriba el estimador de MCO.
+3. ¿Qué supuestos deberían cumplirse para que el estimador MCO sea el MELI?
+4. Existe algún test que permita identificar si se viola el supuesto de exogeneidad. ¿En qué consiste?
+5. Existe algún test que permita identificar si se viola el supuesto de heterocedasticidad. ¿En qué consiste?
+6. ¿Cuál es el efecto de escalar una variable independiente sobre los coeficientes y la significancia?
+7. ¿Cuál es el efecto de escalar la variable dependiente sobre los coeficientes y la significancia?
+8. ¿Cuál es el efecto de estandarizar las variables sobre los coeficientes y la significancia?
+
+
+## Práctico
+
+
+### Simulación
+
+Simule las siguientes distribuciones y genera las siguientes variables con 1000 observaciones:
+
+
+- $X_1 \sim U(-5, 5)$
+- $X_2 \sim U(0, 10)$
+- $X_3 \sim U(5, 30)$
+- $u \sim N(0, 1)$
+- $u_2 \sim N(5, 1)$ 
+- $u_3 = u * e^{X_1 + X_2 + X_3}$
+- $u_4 \sim N(0, 1)$
+- $y_1 = X_1 + X_2 + X_3 + u$
+- $y_2 = X_1 + X_2 + X_3 + u_2$
+- $y_3 = X_1 + X_2 + X_3 + u_3$
+- $y_4 = X_1 + X_2 + X_3 + X_3 ^ 2 + u$
+- $X_4 \sim U(-10, 10)$
+- $X_5 \sim U(0, 100)$
+
+
+
+### Regresión
+
+Corra las siguientes regresiones:
+
+- $y_1$ en $X_1$ y $X_2$. ¿Qué problemas puede tener este modelo? ¿Puede comprobarlo? ¿Cómo se podría solucionar? Interprete. 
+- $y_2$ en $X_1$,  $X_2$ y $X_3$. ¿Qué problemas puede tener este modelo? ¿Puede comprobarlo? ¿Cómo se podría solucionar? Interprete. 
+- $y_3$ en $X_1$,  $X_2$ y $X_3$. ¿Qué problemas puede tener este modelo? ¿Puede comprobarlo? ¿Cómo se podría solucionar? Interprete. 
+- $y_4$ en $X_1$, $X_2$ y $X_3$. ¿Qué problemas puede tener este modelo? ¿Puede comprobarlo? ¿Cómo se podría solucionar? Interprete. 
+- $y_1$ en $X_1$, $X_2$ y $X_3$. ¿Cómo podría hacer para mejorar el $R^2$? ¿Qué consecuencias puede tener esta práctica?
+
