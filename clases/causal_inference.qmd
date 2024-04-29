@@ -73,8 +73,87 @@ $$\hat{\beta}_1=(\bar{Y}|D_i=1)-(\bar{Y}|D_i=0)$$
 
 ## Regresión discontinua
 
+> Algunos diseños no experimentales de asignación de política pública proveen fuentes de variación del tratamiento que pueden ser explotadas para estimar el efecto del tratamiento bajo supuestos relativamente débiles. (Peña & Bernal, 2022)
 
-Simulación de datos
+Una de estas situaciones es cuando la probabilidad de participar en un tratamiento cambia discontinuamente con una variable continua observada $Z$. Esto ocurre en el contexto de la política pública que busca focalizar un grupo particular. La asignación del tratamiento se determina con base en un umbral de $Z$, que denominamos $\bar{Z}$, que determina la elegibilidad para el programa.
+
+Para cada individuo $i$ observamos el indicador de tratamiento, $D_i$, la variable de resultado, $Y_i$, una serie de características observables que no dependen directamente del tratamiento pero afectan la variable de resultado, $X_i$, y una variable observable, $Z_i$, que es una variable continua de focalización que determina la elegibilidad para el programa dependiendo de si suvalor es mayor o menor que un determinado umbral fijo, $\bar{Z}$. 
+
+La intuición de Regresión Discontinua es que los individuos justamente a la izquierda del umbral deben ser muy parecidos a los individuos justamente a la derecha del umbral, excepto que los primeros participan en el programa y los segundos no. Por tal motivo, los últimos podrían ser un contrafactual válido de los primeros.
+
+### Regresión discontinua nítida
+
+Este diseño ocurre cuando $Z$ determina completamente la participación en el programa sobre la base de un umbral $\bar{Z}$. 
+
+$$
+D_i(Z_i))I[Z_i\leq \bar{Z}]
+$$
+
+donde $I[*]=1$ si la condición $*$ se cumple y cero de lo contrario. El diseño nítido implica que el proceso de decisión exógeno es completamente determinado por $Z$. Esto se puede observar en el siguiente gráfico.
+
+```{r}
+z <- 1:10
+y0 <- rep(0, 10)
+y1 <- rep(1, 10)
+
+ggplot() +
+   geom_line(aes(z[1:5], y0[1:5])) +
+  geom_line(aes(z[5:10], y1[5:10])) +
+  
+   labs(x = "Score", y = "Probababilidad de participación") +
+  geom_vline(xintercept = 5, linetype = 'dashed') +
+   theme_minimal()
+
+
+```
+
+La condición de **identificación** de RDN se puede escribir formalmente como 
+
+$$
+\lim_{z\uparrow \bar{Z}}D(Z=z)\neq \lim_{z\downarrow\bar{Z}}D(Z=z)
+$$
+El límite del indicador de tratamiento, $D(Z=z)$, a medida que $z$ tiende a $\bar{Z}$, es diferente dependiendo de si se acerca por la izquierda o por la derecha. La principal fuente de identificación en RDN es la discontinuidad en la participación en el tratamiento en un punto específico de la distribución de $Z$.
+```{r}
+z <- 0:10
+y0 <- 6 + 0.2 * z
+y1 <- 4 + 0.2 * z
+
+ggplot() +
+   geom_line(aes(z[1:6], y0[1:6])) +
+  geom_line(aes(z[6:11], y1[6:11])) +
+  geom_line(aes(z[6:11], y0[6:11]), linetype = 'dashed', alpha = 0.4) +
+  geom_line(aes(z[1:6], y1[1:6]), linetype = 'dashed', alpha = 0.4) +
+  
+  
+   labs(x = "Score", y = "Variable de resultado") +
+  geom_vline(xintercept = 5, linetype = 'dashed', ) +
+   theme_minimal()
+```
+La expectativa condicional de la variable de resultado observada está dada por:
+
+$$
+E[Y|Z=z]=E[Y|D=0, z]P(D=0|Z=z)+E[Y|D=1, Z=z]P(D=1|Z=z)
+$$
+
+Esto corresponde a la totalidad de la línea sólida en la gráfica anterior. La expectativa condicional de la variable de resultado observada no es continua sino que salta en $Z=\bar{Z}$. Este diseño nítido implica que el proceso de decisión exógeno es completamente determinado por $Z$. 
+
+### Supuesto de continuidad
+
+El diseño implica que los individuos están en alguno de los dos lados del umbral. Por tanto, no existen individuos con $Z_i=\bar{Z}$ para los cuales se observe $Y_i(0)$ porque todos los individuos localizados en el umbral $\bar{Z}$ participan en el programa. Sin embargo, se pueden utilizar individuos no participantes con valores de $Z$ arbitrariamente cercanos a $\bar{Z}$ para calcular el efecto del tratamiento, si esos individuos son similares a los participantes.
+
+Esto requiere de un supuesto adicional: continuidad. Formalmente, RD requiere que $E[Y(0)|Z=z]$ y $E[Y(1)|Z=z]$ sean continuas en $\bar{Z}$, para garantizar que la información del lado no tratado del umbral $\bar{Z}$ constituya un contrafactual válido para el lado tratado del umbral (continuidad local):
+
+$$
+\lim_{z\uparrow \bar{Z}}E[Y(0)|Z=z]=\lim_{z\downarrow\bar{Z}}E[Y(0)|Z=z]
+$$
+$$
+\lim_{z\uparrow \bar{Z}}E[Y(1)|Z=z]=\lim_{z\downarrow\bar{Z}}E[Y(1)|Z=z]
+$$
+Esto implica que no existen discontinuidades en $\bar{Z}$ en la relación entre la variable de resultado $Y$ y las variables $X$ que la determinan: los individuos a ambos lados del umbral son similares. No se quieren discontinuidades con las variables predictoras alrededor del umbral.
+
+Adcionalmente, se tiene el supuesto de no manipulación: no hay un salto en la función de densidad del instrumento $Z$ en el umbral $\bar{Z}$. Podemos ver este último en el siguiente gráfico de Baez et. al (2012).
+
+
 
 ```{r}
 dat <- tibble(
@@ -92,7 +171,8 @@ ggplot(aes(x, y1, colour=factor(D)), data = dat) +
   geom_point(alpha = 0.5) + 
   geom_vline(xintercept = 50, colour = "grey", linetype=2) + 
   stat_smooth(method = "lm", se = F) +
-  labs(x = "Test score (X)", y = "Potential Outcome (Y1)")
+  labs(x = "Test score (X)", y = "Potential Outcome (Y1)") +
+  theme_minimal()
 ```
 
 Simulación de discontinuidad
@@ -107,7 +187,8 @@ ggplot(aes(x, y2, colour = factor(D)), data = dat) +
   geom_point(alpha = 0.5) +
   geom_vline(xintercept = 50, colour = "grey", linetype = 2) +
   stat_smooth(method = "lm", se = F) + 
-  labs(x = "Test score (X)", y = "Potential outcome (Y)")
+  labs(x = "Test score (X)", y = "Potential outcome (Y)")+
+  theme_minimal()
 ```
 
 
@@ -135,7 +216,8 @@ ggplot(aes(x, y3, colour = factor(D)), data = dat) +
   geom_point(alpha = 0.2) + 
   geom_vline(xintercept = 140, colour = "grey", linetype = 2) +
   stat_smooth(method = "loess", se = F) + 
-  labs(x = "Test score (X)", y = "Potential Outcome (Y)")
+  labs(x = "Test score (X)", y = "Potential Outcome (Y)") +
+  theme_minimal()
 ```
 
 
@@ -160,7 +242,8 @@ ggplot(aes(x, y3, colour=factor(D)), data = dat) +
   geom_point(alpha = 0.2) + 
   geom_vline(xintercept = 140, colour = "grey", linetype = 2) + 
   stat_smooth(method = "lm", se = F) +
-  labs(x = "Test score (X)", y = "Potential Outcome (Y)")
+  labs(x = "Test score (X)", y = "Potential Outcome (Y)") + 
+  theme_minimal()
 
 ```
 
