@@ -10,7 +10,7 @@ editor: visual
 2. Escriba el estimador de MCO.
 3. ¿Qué supuestos deberían cumplirse para que el estimador MCO sea el MELI?
 4. Existe algún test que permita identificar si se viola el supuesto de exogeneidad. ¿En qué consiste?
-5. Existe algún test que permita identificar si se viola el supuesto de heterocedasticidad. ¿En qué consiste?
+5. Existe algún test que permita identificar si se viola el supuesto de homocedasticidad. ¿En qué consiste?
 6. ¿Cuál es el efecto de escalar una variable independiente sobre los coeficientes y la significancia?
 7. ¿Cuál es el efecto de escalar la variable dependiente sobre los coeficientes y la significancia?
 8. ¿Cuál es el efecto de estandarizar las variables sobre los coeficientes y la significancia?
