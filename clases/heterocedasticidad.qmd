@@ -98,9 +98,9 @@ bptest(reg1)
 
 ### Prueba de White
 
-1.  Regresar $y$ en las variables independientes. Obtener los residuos, los valores ajustados, los errores al cuadrado y los valores ajustados al cuadrado.
+1.  Regresar $y$ en las variables independientes. Obtener los residuos, los valores ajustados, los residuos al cuadrado y los valores ajustados al cuadrado.
 
-2.  Regresar los errores al cuadrado en los valores ajustados y los valores ajustados al cuadrado. Conservar el $R^2_{\hat{u}^2}$.
+2.  Regresar los residuos al cuadrado en los valores ajustados y los valores ajustados al cuadrado. Conservar el $R^2_{\hat{u}^2}$.
 
 3.  Construir los estadísticos $F$ o el estadístico $LM$ y computar el p-valor. La hipótesis nula es homocedasticidad.
 
